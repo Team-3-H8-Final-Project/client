@@ -64,7 +64,10 @@ const Login = () => {
                 />
               </View>
 
-              <TouchableOpacity style={styles.signupButton}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("MainApp")}
+                style={styles.signupButton}
+              >
                 <Text style={styles.signupButtonText}>Sign In</Text>
               </TouchableOpacity>
               <View style={styles.loginRedirectContainer}>
