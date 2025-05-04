@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import axiosInstance from "../helpers/axiosInstance";
+import { saveSecure } from "../helpers/secureStore";
 
 const Login = () => {
   const [identifier, setIdentifier] = useState("");
@@ -29,13 +30,17 @@ const Login = () => {
           password,
         },
       });
+      const accessToken = result.data.access_token
+      const id = result.data.id
       alert(`Login Success`);
-      navigation.navigate("MainApp")
+      navigation.replace("MainApp")
+      await saveSecure('access_token', accessToken)
+      await saveSecure('userId', id)
     } catch (error) {
       if (error.response.data) {
         alert(`${error.response.data.message}`);
       } else {
-        alert(`Something went wrong`);
+        alert(`Something went wrong ${error}`);
       }
     }
   }
