@@ -12,11 +12,33 @@ import {
   ScrollView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import axiosInstance from "../helpers/axiosInstance";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const navigation = useNavigation();
+
+  const handleLogin = async () => {
+    try {
+      const result = await axiosInstance({
+        method: "POST",
+        url: "/login",
+        data: {
+          identifier,
+          password,
+        },
+      });
+      alert(`Login Success`);
+      navigation.navigate("MainApp")
+    } catch (error) {
+      if (error.response.data) {
+        alert(`${error.response.data.message}`);
+      } else {
+        alert(`Something went wrong`);
+      }
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -44,10 +66,9 @@ const Login = () => {
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Email"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
+                  placeholder="Email or Username"
+                  value={identifier}
+                  onChangeText={setIdentifier}
                   autoCapitalize="none"
                   placeholderTextColor="#8A8A8A"
                 />
@@ -65,7 +86,7 @@ const Login = () => {
               </View>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate("MainApp")}
+                onPress={handleLogin}
                 style={styles.signupButton}
               >
                 <Text style={styles.signupButtonText}>Sign In</Text>
