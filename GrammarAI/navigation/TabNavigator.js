@@ -37,11 +37,6 @@ export default function TabNavigator() {
       <Tab.Screen name="Conversation" component={Conversation} />
       <Tab.Screen name="Grammar" component={Grammar} />
       <Tab.Screen name="Profile" component={Profile} />
-      <Tab.Screen
-        name="Feedback"
-        component={Feedback}
-        options={{ tabBarButton: () => null }}
-      />
     </Tab.Navigator>
   );
 }
