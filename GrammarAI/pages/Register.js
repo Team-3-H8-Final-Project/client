@@ -36,7 +36,9 @@ const Register = () => {
         }
       });
       alert(`Register Success`)
-      navigation.navigate("Login")
+      // finish current screen and go to login screen
+      navigation.goBack()
+
     } catch (error) {
       if (error.response.data) {
         alert(`${error.response.data.message}`)
