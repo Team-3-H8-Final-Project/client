@@ -14,6 +14,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import axiosInstance from "../helpers/axiosInstance";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -21,6 +22,29 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigation = useNavigation();
+
+  const handleRegister = async () => {
+    try {
+      const result = await axiosInstance({
+        method: "POST",
+        url: "/register",
+        data: {
+          name,
+          username,
+          email,
+          password,
+        }
+      });
+      alert(`Register Success`)
+      navigation.navigate("Login")
+    } catch (error) {
+      if (error.response.data) {
+        alert(`${error.response.data.message}`)
+      } else {
+        alert(`Something went wrong`)
+      }
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,7 +111,7 @@ const Register = () => {
                 />
               </View>
 
-              <TouchableOpacity style={styles.signupButton}>
+              <TouchableOpacity style={styles.signupButton} onPress={handleRegister}>
                 <Text style={styles.signupButtonText}>Sign Up</Text>
               </TouchableOpacity>
               <View style={styles.loginRedirectContainer}>
