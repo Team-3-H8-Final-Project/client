@@ -15,8 +15,19 @@ export default function StackNav() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const access_token = await getSecure("access_token");
-        setInitialRoute(access_token ? "MainApp" : "Login");
+        // await deleteSecure("access_token"); // Clear the access token for testing purposes
+        // await deleteSecure("userId"); // Clear the user ID for testing purposes
+        // await deleteSecure("onboarded"); // Clear the onboarding status for testing purposes
+
+        const onboarded = await getSecure("onboarded");
+        if (!onboarded) {
+          setInitialRoute("Onboarding");
+          return;
+        } else {
+          const access_token = await getSecure("access_token");
+          setInitialRoute(access_token ? "MainApp" : "Login");
+        }
+
       } catch (error) {
         console.error("Error checking auth:", error);
         setInitialRoute("Login"); // Fallback to Login screen if there's an error
