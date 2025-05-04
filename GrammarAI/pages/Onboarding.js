@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import { useNavigation } from "@react-navigation/native";
+import { saveSecure } from "../helpers/secureStore";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -45,11 +46,12 @@ const Onboarding = () => {
   const navigation = useNavigation();
   const carouselRef = useRef(null);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (activeIndex < onboardingData.length - 1) {
       carouselRef.current?.next();
     } else {
-      navigation.navigate("Register");
+      navigation.replace("Login");
+      await saveSecure("onboarded", "true"); // Save the onboarding status
     }
   };
 
