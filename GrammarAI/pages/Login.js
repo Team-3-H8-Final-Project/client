@@ -33,9 +33,12 @@ const Login = () => {
       const accessToken = result.data.access_token
       const id = result.data.id
       alert(`Login Success`);
-      navigation.replace("MainApp")
+      navigation.replace("LevelLanguage");
+
+      // navigation.replace("MainApp")
       await saveSecure('access_token', accessToken)
       await saveSecure('userId', id)
+      
     } catch (error) {
       if (error.response.data) {
         alert(`${error.response.data.message}`);
