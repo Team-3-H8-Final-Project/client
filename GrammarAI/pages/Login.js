@@ -22,20 +22,20 @@ const Login = () => {
 
   const handleLogin = async () => {
     try {
-      const result = await axiosInstance({
-        method: "POST",
-        url: "/login",
-        data: {
-          identifier,
-          password,
-        },
-      });
-      const accessToken = result.data.access_token
-      const id = result.data.id
-      alert(`Login Success`);
+      // const result = await axiosInstance({
+      //   method: "POST",
+      //   url: "/login",
+      //   data: {
+      //     identifier,
+      //     password,
+      //   },
+      // });
+      // const accessToken = result.data.access_token
+      // const id = result.data.id
+      // alert(`Login Success`);
       navigation.replace("MainApp")
-      await saveSecure('access_token', accessToken)
-      await saveSecure('userId', id)
+      // await saveSecure('access_token', accessToken)
+      // await saveSecure('userId', id)
     } catch (error) {
       if (error.response.data) {
         alert(`${error.response.data.message}`);

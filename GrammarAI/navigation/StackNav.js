@@ -1,10 +1,10 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Register from "../pages/Register";
+import { useEffect, useState } from "react";
 import Login from "../pages/Login";
 import Onboarding from "../pages/Onboarding";
+import Register from "../pages/Register";
 import TabNavigator from "./TabNavigator";
-import { deleteSecure, getSecure } from "../helpers/secureStore";
-import { useEffect, useState } from "react";
+import { getSecure } from "../helpers/secureStore";
 
 const Stack = createNativeStackNavigator();
 
@@ -21,11 +21,11 @@ export default function StackNav() {
 
         const onboarded = await getSecure("onboarded");
         if (!onboarded) {
-          setInitialRoute("Onboarding");
+          setInitialRoute("MainApp");
           return;
         } else {
-          const access_token = await getSecure("access_token");
-          setInitialRoute(access_token ? "MainApp" : "Login");
+          // const access_token = await getSecure("access_token");
+          setInitialRoute("MainApp");
         }
 
       } catch (error) {
