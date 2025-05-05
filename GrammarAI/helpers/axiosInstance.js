@@ -6,7 +6,6 @@ const axiosInstance = axios.create({
   //change to your ngrok link for development after running server locally and run ngrok http 3000
 });
 
-})
 
 
 /*
