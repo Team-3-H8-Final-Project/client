@@ -188,9 +188,9 @@ const ChallengeDetail = () => {
           </Text>
           <TouchableOpacity
             style={styles.restartButton}
-            onPress={() => navigation.navigate("ChallengeMain")}
+            onPress={() => navigation.navigate("Feedback")}
           >
-            <Text style={styles.restartButtonText}>Try Another Challenge</Text>
+            <Text style={styles.restartButtonText}>See your feedback</Text>
           </TouchableOpacity>
         </Animated.View>
       </SafeAreaView>

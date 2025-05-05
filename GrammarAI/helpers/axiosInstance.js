@@ -1,8 +1,9 @@
-import axios from "axios"
+import axios from "axios";
 
 const axiosInstance = axios.create({
-    baseURL: 'https://6c99-103-108-33-71.ngrok-free.app'
-})
+  baseURL: "https://bd9b-110-138-88-81.ngrok-free.app",
+  //change to your ngrok link for development after running server locally and run ngrok http 3000
+});
 
 /*
  note : 
@@ -10,4 +11,4 @@ const axiosInstance = axios.create({
 - if you are using ngrok, make sure to use the https link, not http link
 */
 
-export default axiosInstance
+export default axiosInstance;
