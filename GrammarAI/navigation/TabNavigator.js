@@ -5,7 +5,9 @@ import Grammar from "../pages/Grammar";
 import Profile from "../pages/Profile";
 import ChallengesStack from "./ChallengeStack";
 import Feedback from "../pages/Feedback";
-import ConversationWeb from "../pages/ConversationWeb";
+import ConversationForm from "../pages/ConversationForm";
+import ConversationStack from "./ConversationStack";
+
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {

@@ -4,7 +4,10 @@ import Login from "../pages/Login";
 import Onboarding from "../pages/Onboarding";
 import Register from "../pages/Register";
 import TabNavigator from "./TabNavigator";
-import { getSecure } from "../helpers/secureStore";
+import LevelLanguage from "../pages/LevelLanguage";
+import { deleteSecure, getSecure } from "../helpers/secureStore";
+import { useEffect, useState } from "react";
+
 
 const Stack = createNativeStackNavigator();
 
@@ -12,12 +15,16 @@ export default function StackNav() {
   const [initialRoute, setInitialRoute] = useState(null); // State to hold the initial route
   const [isLoading, setIsLoading] = useState(true); // Loading state
 
+  // is already choose level
+  const [isLevel, setIsLevel] = useState(false);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
         // await deleteSecure("access_token"); // Clear the access token for testing purposes
         // await deleteSecure("userId"); // Clear the user ID for testing purposes
         // await deleteSecure("onboarded"); // Clear the onboarding status for testing purposes
+        // await deleteSecure("currentLevelId"); // Clear the level choice for testing purposes
 
         const onboarded = await getSecure("onboarded");
         if (!onboarded) {
@@ -25,7 +32,14 @@ export default function StackNav() {
           return;
         } else {
           const access_token = await getSecure("access_token");
-          setInitialRoute(access_token ?  "LevelLanguage" : "Login");
+          //LevelLanguage
+          const level = await getSecure("currentLevelId");
+          if (level) {
+            setInitialRoute(access_token ? "MainApp" : "Login");
+          } else {
+            setInitialRoute("LevelLanguage");
+          }
+
         }
 
       } catch (error) {
@@ -50,6 +64,7 @@ export default function StackNav() {
       <Stack.Screen name="Onboarding" component={Onboarding} />
       <Stack.Screen name="Register" component={Register} />
       <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="LevelLanguage" component={LevelLanguage} />
       <Stack.Screen name="MainApp" component={TabNavigator} />
     </Stack.Navigator>
   );

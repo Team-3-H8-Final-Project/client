@@ -1,23 +1,68 @@
-import React from "react";
-import { StyleSheet, View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import axiosInstance from "../helpers/axiosInstance";
+import { getSecure } from "../helpers/secureStore";
 
 const Profile = () => {
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = await getSecure("access_token");
+        if (!token) {
+          throw new Error("Token not found");
+        }
+
+        const response = await axiosInstance.get("/profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setProfileData(response.data.data);
+      } catch (error) {
+        console.error("Error fetching profile data:", error.message);
+        console.error("Error details:", error.response?.data || error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#4285F4" />
+      </View>
+    );
+  }
+
+  if (!profileData) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: "#333", fontSize: 16 }}>Failed to load profile data.</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        
+
         <View style={styles.header}>
           <Image
             source={require("../assets/logo.png")}
             style={styles.avatar}
             resizeMode="contain"
           />
-          <Text style={styles.username}>Nama User</Text>
-          <Text style={styles.bio}>bio user yang mungkin akan sangat panjang</Text>
+          <Text style={styles.username}>{profileData.username}</Text>
+          <Text style={styles.bio}>{profileData.motivation}</Text>
         </View>
 
-       
+
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>Learning Progress</Text>
           <View style={styles.progressBar}>
@@ -59,14 +104,6 @@ const Profile = () => {
         </View>
 
         <View style={styles.navButtons}>
-          <TouchableOpacity style={styles.navButton}>
-            <Ionicons name="settings-outline" size={24} color="#fff" />
-            <Text style={styles.navButtonText}>Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navButton}>
-            <Ionicons name="bookmark-outline" size={24} color="#fff" />
-            <Text style={styles.navButtonText}>Bookmarks</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.navButton}>
             <Ionicons name="log-out-outline" size={24} color="#fff" />
             <Text style={styles.navButtonText}>Log Out</Text>
@@ -196,7 +233,7 @@ const styles = StyleSheet.create({
   navButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4285F4",
+    backgroundColor: "#e63946",
     padding: 15,
     borderRadius: 12,
     flex: 1,
