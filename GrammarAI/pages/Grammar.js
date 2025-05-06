@@ -26,8 +26,8 @@ export default function Grammar() {
 const [currentIndex, setCurrentIndex] = useState(0);
 const [loading, setLoading] = useState(true);
 const currentQuestion = grammarData[currentIndex] || {};
-const targetSentence = currentQuestion.question || "";
-  const audioPhrase = currentQuestion.answer || "";
+const targetSentence = currentQuestion.answer || "";
+  const audioPhrase = currentQuestion.question || "";
 // const targetSentence = "Bagaimana kabarmu hari ini?"; //question
   // const audioPhrase = "How are you today?"; //answer
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
