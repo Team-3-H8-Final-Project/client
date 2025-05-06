@@ -8,73 +8,20 @@ import {
   StatusBar,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-
-// Dummy Data
-const quizData = [
-  {
-    id: 1,
-    question: "Bagaimana cara menanyakan nama seseorang dalam bahasa Inggris?",
-    options: [
-      { id: "a", text: "What are you name?" },
-      { id: "b", text: "What name are you?" },
-      { id: "c", text: "Who are name?" },
-      { id: "d", text: "What is your name?" },
-    ],
-    correctAnswer: "d",
-  },
-  {
-    id: 2,
-    question:
-      "Bagaimana cara mengatakan 'Saya suka belajar bahasa' dalam bahasa Inggris?",
-    options: [
-      { id: "a", text: "I like learning languages" },
-      { id: "b", text: "I am like learn language" },
-      { id: "c", text: "Me like language learning" },
-      { id: "d", text: "I learning like languages" },
-    ],
-    correctAnswer: "a",
-  },
-  {
-    id: 3,
-    question: "Apa bahasa Inggris dari 'Selamat pagi'?",
-    options: [
-      { id: "a", text: "Good afternoon" },
-      { id: "b", text: "Good evening" },
-      { id: "c", text: "Good morning" },
-      { id: "d", text: "Good night" },
-    ],
-    correctAnswer: "c",
-  },
-  {
-    id: 4,
-    question:
-      "Bagaimana cara bertanya 'Jam berapa sekarang?' dalam bahasa Inggris?",
-    options: [
-      { id: "a", text: "What is the hour now?" },
-      { id: "b", text: "What time is it?" },
-      { id: "c", text: "How many hours now?" },
-      { id: "d", text: "When is the time?" },
-    ],
-    correctAnswer: "b",
-  },
-  {
-    id: 5,
-    question: "Apa bahasa Inggris dari kata 'Terima kasih'?",
-    options: [
-      { id: "a", text: "Please" },
-      { id: "b", text: "Sorry" },
-      { id: "c", text: "Excuse me" },
-      { id: "d", text: "Thank you" },
-    ],
-    correctAnswer: "d",
-  },
-];
+import { useNavigation, useRoute } from "@react-navigation/native";
+import axiosInstance from "../helpers/axiosInstance";
+import { getSecure } from "../helpers/secureStore";
 
 const { width } = Dimensions.get("window");
 
 const ChallengeDetail = () => {
+  const route = useRoute();
+  const { theme } = route.params;
+  const [quizData, setQuizData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
@@ -86,42 +33,84 @@ const ChallengeDetail = () => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const currentQuestion = quizData[currentQuestionIndex];
-  const progress = (currentQuestionIndex / quizData.length) * 100;
+  useEffect(() => {
+    const fetchQuizData = async () => {
+      try {
+        setLoading(true);
+        const token = await getSecure("access_token");
+        const desiredLevel = "Pemula"; // ini maksudnya
+        const response = await axiosInstance.get(`/challenge?theme=${theme}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = response.data.data;
+        // filter berdasarkan level
+        const filteredData = data.filter(item => item.level === desiredLevel);
+        // Transform the API data to match our quiz format
+        const limitedData = filteredData.slice(0, 5);
+        const formattedData = limitedData.map((item, index) => ({
+                    id: item.id,
+                    question: item.question,
+                    options: item.options.map((option, i) => ({
+                      id: String.fromCharCode(97 + i), // a, b, c, d
+                      text: option,
+                    })),
+                    correctAnswer: String.fromCharCode(97 + item.options.indexOf(item.answer)), // find index of correct answer
+                  }));
+        
+        setQuizData(formattedData);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+        console.log(err.response); // Lihat response error lengkap
+  setError(err.response?.data?.message || err.message);
+      }
+    };
+
+    fetchQuizData();
+  }, [theme]);
 
   useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: progress,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
+    if (quizData.length > 0) {
+      const progress = (currentQuestionIndex / quizData.length) * 100;
+      
+      Animated.timing(progressAnim, {
+        toValue: progress,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
 
-    if (currentQuestionIndex > 0) {
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 1,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        slideAnim.setValue(0);
-      });
+      if (currentQuestionIndex > 0) {
+        Animated.sequence([
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 1,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          slideAnim.setValue(0);
+        });
+      }
     }
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, quizData]);
 
   const handleOptionSelect = (optionId) => {
+    if (!quizData[currentQuestionIndex]) return;
+    
     setSelectedOption(optionId);
-    const isAnswerCorrect = optionId === currentQuestion.correctAnswer;
+    const isAnswerCorrect = optionId === quizData[currentQuestionIndex].correctAnswer;
     setIsCorrect(isAnswerCorrect);
 
     if (isAnswerCorrect) {
@@ -144,13 +133,13 @@ const ChallengeDetail = () => {
       return styles.option;
     }
 
-    if (optionId === currentQuestion.correctAnswer) {
+    if (optionId === quizData[currentQuestionIndex]?.correctAnswer) {
       return [styles.option, styles.correctOption];
     }
 
     if (
       selectedOption === optionId &&
-      optionId !== currentQuestion.correctAnswer
+      optionId !== quizData[currentQuestionIndex]?.correctAnswer
     ) {
       return [styles.option, styles.incorrectOption];
     }
@@ -162,6 +151,43 @@ const ChallengeDetail = () => {
     inputRange: [0, 100],
     outputRange: ["0%", "100%"],
   });
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#4285F4" />
+        <Text style={styles.loadingText}>Loading challenge...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, styles.errorContainer]}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  if (quizData.length === 0 && !loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.emptyContainer]}>
+        <Text style={styles.emptyText}>No questions available for this theme.</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   if (completed) {
     return (
@@ -196,6 +222,8 @@ const ChallengeDetail = () => {
       </SafeAreaView>
     );
   }
+
+  const currentQuestion = quizData[currentQuestionIndex];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -272,7 +300,7 @@ const ChallengeDetail = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "f9f9f9",
+    backgroundColor: "#f9f9f9",
   },
   content: {
     flex: 1,
@@ -379,6 +407,48 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   restartButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#333",
+  },
+  errorContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#ef4444",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  emptyContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#333",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#4285F4",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
