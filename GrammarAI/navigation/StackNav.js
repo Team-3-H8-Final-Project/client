@@ -26,7 +26,7 @@ export default function StackNav() {
           return;
         } else {
           const access_token = await getSecure("access_token");
-          setInitialRoute(access_token ?  "LevelLanguage" : "Login");
+          setInitialRoute(access_token ? "LevelLanguage" : "Login");
         }
 
       } catch (error) {

@@ -51,7 +51,7 @@ const Profile = () => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        
+
         <View style={styles.header}>
           <Image
             source={require("../assets/logo.png")}
@@ -62,7 +62,7 @@ const Profile = () => {
           <Text style={styles.bio}>{profileData.motivation}</Text>
         </View>
 
-       
+
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>Learning Progress</Text>
           <View style={styles.progressBar}>
@@ -104,14 +104,6 @@ const Profile = () => {
         </View>
 
         <View style={styles.navButtons}>
-          <TouchableOpacity style={styles.navButton}>
-            <Ionicons name="settings-outline" size={24} color="#fff" />
-            <Text style={styles.navButtonText}>Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navButton}>
-            <Ionicons name="bookmark-outline" size={24} color="#fff" />
-            <Text style={styles.navButtonText}>Bookmarks</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.navButton}>
             <Ionicons name="log-out-outline" size={24} color="#fff" />
             <Text style={styles.navButtonText}>Log Out</Text>
@@ -241,7 +233,7 @@ const styles = StyleSheet.create({
   navButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4285F4",
+    backgroundColor: "#e63946",
     padding: 15,
     borderRadius: 12,
     flex: 1,
