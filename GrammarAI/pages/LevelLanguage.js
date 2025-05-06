@@ -8,17 +8,35 @@ import {
   Animated,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { saveSecure } from "../helpers/secureStore";
 
 const LevelLanguage = () => {
-  const [selectedLevel, setSelectedLevel] = useState(null);
   const navigation = useNavigation();
 
   const levels = ["Pemula", "Menengah", "Lanjutan", "Fasih"];
 
-  const handleSelectLevel = (level) => {
-    setSelectedLevel(level);
-    console.log(`Selected Level: ${level}`);
+  const handleSelectLevel = async (level) => {
+    // level id based on levels
+    let levelId
+    switch (level) {
+      case "Pemula":
+        levelId = 1;
+        break;
+      case "Menengah":
+        levelId = 2;
+        break;
+      case "Lanjutan":
+        levelId = 3;
+        break;
+      case "Fasih":
+        levelId = 4;
+        break;
+      default:
+        levelId = null;
+    }
+    // set level choosen to secure store
     navigation.replace("MainApp");
+    await saveSecure("currentLevelId", `${levelId}`);
   };
 
   return (
@@ -35,32 +53,18 @@ const LevelLanguage = () => {
             <TouchableOpacity
               key={level}
               style={[
-                styles.levelButton,
-                selectedLevel === level && styles.selectedLevelButton,
+                styles.levelButton
               ]}
               onPress={() => handleSelectLevel(level)}
               activeOpacity={0.8}
             >
-              <Text
-                style={[
-                  styles.levelText,
-                  selectedLevel === level && styles.selectedLevelText,
-                ]}
-              >
+              <Text>
                 {level}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {selectedLevel && (
-          <View style={styles.selectedContainer}>
-            <Text style={styles.selectedText}>
-              Anda memilih level:{" "}
-              <Text style={styles.selectedLevel}>{selectedLevel}</Text>
-            </Text>
-          </View>
-        )}
       </View>
     </SafeAreaView>
   );
