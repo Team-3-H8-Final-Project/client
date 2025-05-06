@@ -7,6 +7,7 @@ import ChallengesStack from "./ChallengeStack";
 import Feedback from "../pages/Feedback";
 import ConversationForm from "../pages/ConversationForm";
 import ConversationStack from "./ConversationStack";
+
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
@@ -36,7 +37,7 @@ export default function TabNavigator() {
       })}
     >
       <Tab.Screen name="Challenges" component={ChallengesStack} />
-      <Tab.Screen name="Conversation" component={ConversationStack} />
+      <Tab.Screen name="Conversation" component={ConversationWeb} />
       <Tab.Screen name="Grammar" component={Grammar} />
       <Tab.Screen name="Profile" component={Profile} />
     </Tab.Navigator>
