@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { GEMINI_API } from "@env";
+import { useEffect, useState } from "react";
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import {
   StyleSheet,
   View,
@@ -12,91 +15,157 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAudioRecorder, useAudioPlayer, AudioModule, RecordingPresets } from "expo-audio";
 import axiosInstance from "../helpers/axiosInstance";
 import { getSecure } from "../helpers/secureStore";
 
-export default function Grammar() {
+export default function App() {
   const [isListening, setIsListening] = useState(false);
-  const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState("");
+  const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [recordingUri, setRecordingUri] = useState(null);
   const [grammarData, setGrammarData] = useState([]);
-const [currentIndex, setCurrentIndex] = useState(0);
-const [loading, setLoading] = useState(true);
-const currentQuestion = grammarData[currentIndex] || {};
-const targetSentence = currentQuestion.answer || "";
-  const audioPhrase = currentQuestion.question || "";
-// const targetSentence = "Bagaimana kabarmu hari ini?"; //question
-  // const audioPhrase = "How are you today?"; //answer
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const player = useAudioPlayer(recordingUri ? { uri: recordingUri } : null);
-  useEffect(() => {
-    (async () => {
-      const status = await AudioModule.requestRecordingPermissionsAsync();
-      if (!status.granted) {
-        Alert.alert("Izin untuk mikrofon ditolak");
-        return;
-      }
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [recording, setRecording] = useState(null);
+const [recordedUri, setRecordedUri] = useState(null);
+const [isPlaying, setIsPlaying] = useState(false);
 
+  const currentQuestion = grammarData[currentIndex] || {};
+  const targetSentence = currentQuestion.answer || "";
+  const audioPhrase = currentQuestion.question || "";
+
+  useEffect(() => {
+    const fetchGrammarData = async () => {
       try {
         const token = await getSecure("access_token");
-        const response = await axiosInstance.get(`/grammar?level=Pemula`, {
+        if (!token) throw new Error("Token not found");
+let level = "Pemula" //nanti di jadikan dinamis ya...
+        const response = await axiosInstance.get(`/grammar?level=${level}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        setGrammarData(response.data.data);
-        setCurrentIndex(0);
+
+        setGrammarData(response.data.data || []);
       } catch (error) {
         console.error("Error fetching grammar data:", error.message);
+        console.error("Details:", error.response?.data || error);
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    fetchGrammarData();
   }, []);
 
-  const startRecording = async () => {
+  // const startListening = () => {
+    
+  //   setIsListening(true);
+  //   setShowResult(false);
+
+  //   setTimeout(() => {
+  //     setIsListening(false);
+  //     checkAnswer();
+  //   }, 3000);
+  // };
+
+  const startListening = async () => {
     try {
+      setShowResult(false);
       setIsListening(true);
-      await recorder.record();
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) return;
+  
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+  
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(recording);
     } catch (err) {
-      console.error("Gagal merekam:", err);
-      setIsListening(false);
+      console.error("Gagal memulai rekaman:", err);
     }
   };
-
   const stopRecording = async () => {
     try {
-      const { uri } = await recorder.stop();
-      setRecordingUri(uri);
       setIsListening(false);
-      await checkAnswer(uri);
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecordedUri(uri);
+      setRecording(null);
+  
+      await processAudioWithGemini(uri);
     } catch (err) {
       console.error("Gagal menghentikan rekaman:", err);
-      setIsListening(false);
     }
-  };
-
-  const checkAnswer = () => {
-    const randomCorrect = Math.random() > 0.3;
-    if (randomCorrect) {
-      setResult(targetSentence);
-      setIsCorrect(true);
-    } else {
-      setResult("How is you today?");
-      setIsCorrect(false);
-    }
-    setShowResult(true);
   };
 
   const playRecording = async () => {
     try {
-      await player.play();
-    } catch {
-      Alert.alert("Tidak ada rekaman untuk diputar");
+      if (!recordedUri) return;
+      const { sound } = await Audio.Sound.createAsync({ uri: recordedUri });
+      setIsPlaying(true);
+      await sound.playAsync();
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (!status.isPlaying) setIsPlaying(false);
+      });
+    } catch (err) {
+      console.error("Gagal memutar rekaman:", err);
     }
+  };
+  const processAudioWithGemini = async (uri) => {
+    try {
+      setLoading(true);
+      const base64Audio = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+  
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'audio/m4a',
+                    data: base64Audio,
+                  },
+                },
+                {
+                  text: 'Transkripkan isi suara ini ke dalam teks bahasa Inggris tanpa penjelasan tambahan.',
+                }
+              ],
+            },
+          ],
+        }),
+      });
+  
+      const data = await response.json();
+      const transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      setResult(transcript);
+      setIsCorrect(transcript.toLowerCase().includes(targetSentence.toLowerCase()));
+      setShowResult(true);
+    } catch (err) {
+      console.error("Gagal memproses audio dengan Gemini:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+    
+    
+
+  const checkAnswer = () => {
+    const randomCorrect = Math.random() > 0.3;
+
+    setResult(randomCorrect ? targetSentence : "How is you today?");
+    setIsCorrect(randomCorrect);
+    setShowResult(true);
   };
 
   const handleContinue = () => {
@@ -107,17 +176,18 @@ const targetSentence = currentQuestion.answer || "";
     }
     setShowResult(false);
     setResult("");
-    setRecordingUri(null);
   };
 
   if (loading) {
     return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#4285F4" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1cb0f6" />
+          <Text style={{ marginTop: 10 }}>Memuat soal...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
-  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -141,14 +211,29 @@ const targetSentence = currentQuestion.answer || "";
 
         <View style={styles.inputContainer}>
           {showResult ? (
+            // <View
+            //   style={[
+            //     styles.resultContainer,
+            //     isCorrect ? styles.correctResult : styles.incorrectResult,
+            //   ]}
+            // >
+            //   <Text style={styles.resultText}>{result}</Text>
+            // </View>
             <View
-              style={[
-                styles.resultContainer,
-                isCorrect ? styles.correctResult : styles.incorrectResult,
-              ]}
-            >
-              <Text style={styles.resultText}>{result}</Text>
-            </View>
+  style={[
+    styles.resultContainer,
+    isCorrect ? styles.correctResult : styles.incorrectResult,
+  ]}
+>
+  <Text style={[styles.resultText, { fontWeight: 'bold' }]}>Kamu berkata:</Text>
+  <Text style={styles.resultText}>{result}</Text>
+
+  <View style={{ height: 12 }} />
+
+  <Text style={[styles.resultText, { fontWeight: 'bold' }]}>Jawaban yang benar:</Text>
+  <Text style={styles.resultText}>{targetSentence}</Text>
+</View>
+
           ) : (
             <View style={styles.emptyInputContainer}>
               <Text style={styles.placeholderText}>
@@ -159,39 +244,56 @@ const targetSentence = currentQuestion.answer || "";
         </View>
       </View>
 
-   
-        <TouchableOpacity style={styles.playButton} onPress={playRecording}>
-          <Ionicons name="play" size={24} color="white" />
-          <Text style={styles.playButtonText}>Putar Rekaman</Text>
-        </TouchableOpacity>
-   
-
       <View style={styles.buttonContainer}>
-        {!showResult ? (
-          <TouchableOpacity
-            style={[styles.speakButton, isListening && styles.speakButtonActive]}
-            onPress={isListening ? stopRecording : startRecording}
-          >
-            <Ionicons name="mic" size={24} color="white" />
-            <Text style={styles.speakButtonText}>
-              {isListening ? "Mendengar..." : "Bicara Sekarang"}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.feedbackContainer}>
-            <Text
-              style={[
-                styles.feedbackText,
-                isCorrect ? styles.correctText : styles.incorrectText,
-              ]}
-            >
-              {isCorrect ? "Benar!" : "Kurang Benar"}
-            </Text>
-            <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-              <Text style={styles.continueButtonText}>LANJUT</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+      {!showResult ? (
+  <TouchableOpacity
+    style={[styles.speakButton, isListening && styles.speakButtonActive]}
+    onPress={isListening ? stopRecording : startListening}
+    disabled={loading}
+  >
+    <Ionicons name="mic" size={24} color="white" />
+    <Text style={styles.speakButtonText}>
+      {isListening ? "Menghentikan..." : "Bicara Sekarang"}
+    </Text>
+  </TouchableOpacity>
+) : (
+  <View style={styles.feedbackContainer}>
+    <Text
+      style={[
+        styles.feedbackText,
+        isCorrect ? styles.correctText : styles.incorrectText,
+      ]}
+    >
+      {isCorrect ? "Benar!" : "Kurang Benar"}
+    </Text>
+        {recordedUri && (
+      <TouchableOpacity
+        style={[
+          styles.continueButton,
+          isPlaying ? styles.playButtonActive : styles.playButtonInactive, // Kondisi warna tombol
+        ]}
+        onPress={playRecording}
+        disabled={isPlaying}
+      >
+        <Text style={styles.continueButtonText}>
+          {isPlaying ? "Memutar..." : "Putar Rekaman"}
+        </Text>
+      </TouchableOpacity>
+    )}
+    
+    <TouchableOpacity
+      style={[
+        styles.continueButton,
+        !isPlaying ? styles.continueButtonActive : styles.continueButtonInactive, // Kondisi warna tombol
+      {marginTop: 10}
+      ]}
+      onPress={handleContinue}
+    >
+      <Text style={styles.continueButtonText}>LANJUT</Text>
+    </TouchableOpacity>
+  </View>
+)}
+
       </View>
     </SafeAreaView>
   );
@@ -202,6 +304,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     flex: 1,
@@ -319,20 +426,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  playButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#1cb0f6",
-    paddingVertical: 16,
-    borderRadius: 50,
-    marginHorizontal: 20,
-    marginBottom: 16,
+    playButtonActive: {
+    backgroundColor: "#ff9600", // Warna tombol saat memutar rekaman
   },
-  playButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-    marginLeft: 8,
+  playButtonInactive: {
+    backgroundColor: "#1cb0f6", // Warna tombol saat tidak memutar rekaman
+  },
+  continueButtonActive: {
+    backgroundColor: "#58cc02", // Warna tombol "LANJUT" saat aktif
+  },
+  continueButtonInactive: {
+    backgroundColor: "#ccc", // Warna tombol "LANJUT" saat tidak aktif
   },
 });
