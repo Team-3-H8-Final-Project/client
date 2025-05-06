@@ -21,11 +21,11 @@ export default function StackNav() {
 
         const onboarded = await getSecure("onboarded");
         if (!onboarded) {
-          setInitialRoute("MainApp");
+          setInitialRoute("Onboarding");
           return;
         } else {
-          // const access_token = await getSecure("access_token");
-          setInitialRoute("MainApp");
+          const access_token = await getSecure("access_token");
+          setInitialRoute(access_token ?  "LevelLanguage" : "Login");
         }
 
       } catch (error) {
