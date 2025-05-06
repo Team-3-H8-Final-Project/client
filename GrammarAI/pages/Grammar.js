@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -8,32 +8,79 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useAudioRecorder, useAudioPlayer, AudioModule, RecordingPresets } from "expo-audio";
+import axiosInstance from "../helpers/axiosInstance";
+import { getSecure } from "../helpers/secureStore";
 
-export default function App() {
+export default function Grammar() {
   const [isListening, setIsListening] = useState(false);
-  const [result, setResult] = useState("");
   const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState("");
   const [isCorrect, setIsCorrect] = useState(false);
+  const [recordingUri, setRecordingUri] = useState(null);
+  const [grammarData, setGrammarData] = useState([]);
+const [currentIndex, setCurrentIndex] = useState(0);
+const [loading, setLoading] = useState(true);
+const currentQuestion = grammarData[currentIndex] || {};
+const targetSentence = currentQuestion.question || "";
+  const audioPhrase = currentQuestion.answer || "";
+// const targetSentence = "Bagaimana kabarmu hari ini?"; //question
+  // const audioPhrase = "How are you today?"; //answer
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const player = useAudioPlayer(recordingUri ? { uri: recordingUri } : null);
+  useEffect(() => {
+    (async () => {
+      const status = await AudioModule.requestRecordingPermissionsAsync();
+      if (!status.granted) {
+        Alert.alert("Izin untuk mikrofon ditolak");
+        return;
+      }
 
-  const targetSentence = "Bagaimana kabarmu hari ini?";
-  const audioPhrase = "How are you today?";
+      try {
+        const token = await getSecure("access_token");
+        const response = await axiosInstance.get(`/grammar?level=Pemula`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setGrammarData(response.data.data);
+        setCurrentIndex(0);
+      } catch (error) {
+        console.error("Error fetching grammar data:", error.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  const startListening = () => {
-    setIsListening(true);
-    setShowResult(false);
-
-    setTimeout(() => {
+  const startRecording = async () => {
+    try {
+      setIsListening(true);
+      await recorder.record();
+    } catch (err) {
+      console.error("Gagal merekam:", err);
       setIsListening(false);
-      checkAnswer();
-    }, 3000);
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      const { uri } = await recorder.stop();
+      setRecordingUri(uri);
+      setIsListening(false);
+      await checkAnswer(uri);
+    } catch (err) {
+      console.error("Gagal menghentikan rekaman:", err);
+      setIsListening(false);
+    }
   };
 
   const checkAnswer = () => {
-    // in a real app, you'd compare the actual speech recognition result
-    const randomCorrect = Math.random() > 0.3; // 70% chance of being correct for demo
-
+    const randomCorrect = Math.random() > 0.3;
     if (randomCorrect) {
       setResult(targetSentence);
       setIsCorrect(true);
@@ -41,22 +88,43 @@ export default function App() {
       setResult("How is you today?");
       setIsCorrect(false);
     }
-
     setShowResult(true);
   };
 
+  const playRecording = async () => {
+    try {
+      await player.play();
+    } catch {
+      Alert.alert("Tidak ada rekaman untuk diputar");
+    }
+  };
+
   const handleContinue = () => {
+    if (currentIndex < grammarData.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      Alert.alert("Sudah sampai soal terakhir");
+    }
     setShowResult(false);
     setResult("");
-    // In a real app, you would navigate to the next question here
+    setRecordingUri(null);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#4285F4" />
+      </View>
+    );
+  }
+  
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.instructionContainer}>
           <Text style={styles.instructionText}>
-            Bentuklah kalimat berikut dalam bahasa Inggris{" "}
+            Bentuklah kalimat berikut dalam bahasa Inggris
           </Text>
         </View>
 
@@ -91,15 +159,18 @@ export default function App() {
         </View>
       </View>
 
+   
+        <TouchableOpacity style={styles.playButton} onPress={playRecording}>
+          <Ionicons name="play" size={24} color="white" />
+          <Text style={styles.playButtonText}>Putar Rekaman</Text>
+        </TouchableOpacity>
+   
+
       <View style={styles.buttonContainer}>
         {!showResult ? (
           <TouchableOpacity
-            style={[
-              styles.speakButton,
-              isListening && styles.speakButtonActive,
-            ]}
-            onPress={startListening}
-            disabled={isListening}
+            style={[styles.speakButton, isListening && styles.speakButtonActive]}
+            onPress={isListening ? stopRecording : startRecording}
           >
             <Ionicons name="mic" size={24} color="white" />
             <Text style={styles.speakButtonText}>
@@ -116,10 +187,7 @@ export default function App() {
             >
               {isCorrect ? "Benar!" : "Kurang Benar"}
             </Text>
-            <TouchableOpacity
-              style={styles.continueButton}
-              onPress={handleContinue}
-            >
+            <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
               <Text style={styles.continueButtonText}>LANJUT</Text>
             </TouchableOpacity>
           </View>
@@ -142,7 +210,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 24,
   },
-
   instructionContainer: {
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -241,14 +308,6 @@ const styles = StyleSheet.create({
   incorrectText: {
     color: "#ff4b4b",
   },
-  actionButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginBottom: 16,
-  },
-  actionButton: {
-    marginLeft: 16,
-  },
   continueButton: {
     backgroundColor: "#58cc02",
     paddingVertical: 16,
@@ -260,9 +319,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  helpButton: {
-    position: "absolute",
-    bottom: 24,
-    left: 20,
+  playButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1cb0f6",
+    paddingVertical: 16,
+    borderRadius: 50,
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  playButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginLeft: 8,
   },
 });
