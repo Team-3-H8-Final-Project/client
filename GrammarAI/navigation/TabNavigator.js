@@ -7,6 +7,7 @@ import ChallengesStack from "./ChallengeStack";
 import Feedback from "../pages/Feedback";
 import ConversationForm from "../pages/ConversationForm";
 import ConversationStack from "./ConversationStack";
+import ConversationWeb from "../pages/ConversationWeb";
 
 const Tab = createBottomTabNavigator();
 

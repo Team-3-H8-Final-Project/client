@@ -23,7 +23,9 @@
       "bitcode": false
     },
     "android": {
-      "permissions": ["RECORD_AUDIO"],
+      "permissions": [
+        "RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -35,7 +37,6 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-
       "@config-plugins/react-native-webrtc",
       "@daily-co/config-plugin-rn-daily-js",
       [
@@ -52,7 +53,6 @@
       "expo-secure-store",
       "expo-font",
       "expo-audio"
-
     ]
   }
 }
