@@ -10,6 +10,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
+  ScrollView,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import axiosInstance from "../helpers/axiosInstance";
@@ -340,161 +341,163 @@ const ChallengeDetail = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <ScrollView>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.closeButton}
-        >
-          <Ionicons name="close" size={24} color="#AFAFAF" />
-        </TouchableOpacity>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.closeButton}
+          >
+            <Ionicons name="close" size={24} color="#AFAFAF" />
+          </TouchableOpacity>
 
-        <View style={styles.heartsContainer}>
-          {[...Array(hearts)].map((_, i) => (
-            <Ionicons
-              key={i}
-              name="heart"
-              size={20}
-              color="#FF4B4B"
-              style={styles.heartIcon}
-            />
-          ))}
+          <View style={styles.heartsContainer}>
+            {[...Array(hearts)].map((_, i) => (
+              <Ionicons
+                key={i}
+                name="heart"
+                size={20}
+                color="#FF4B4B"
+                style={styles.heartIcon}
+              />
+            ))}
+          </View>
         </View>
-      </View>
 
-      <View style={styles.progressContainer}>
-        <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
-      </View>
+        <View style={styles.progressContainer}>
+          <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
+        </View>
 
-      <View style={styles.content}>
-        <Animated.View
-          style={[
-            styles.questionContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -10],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Text style={styles.instructionText}>Pilih jawaban yang benar</Text>
-          <Text style={styles.questionText}>{currentQuestion.question}</Text>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.optionsContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -10],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          {currentQuestion.options.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={getOptionStyle(option.id)}
-              onPress={() => handleOptionSelect(option.id)}
-              disabled={selectedOption !== null}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  selectedOption &&
-                  selectedOption !== option.id &&
-                  option.id !== currentQuestion.correctAnswer &&
-                  styles.disabledOptionText,
-                ]}
-              >
-                {option.text}
-              </Text>
-              {selectedOption === option.id &&
-                option.id === currentQuestion.correctAnswer && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={24}
-                    color="#58CC02"
-                    style={styles.optionIcon}
-                  />
-                )}
-              {selectedOption === option.id &&
-                option.id !== currentQuestion.correctAnswer && (
-                  <Ionicons
-                    name="close-circle"
-                    size={24}
-                    color="#FF4B4B"
-                    style={styles.optionIcon}
-                  />
-                )}
-            </TouchableOpacity>
-          ))}
-        </Animated.View>
-      </View>
-
-      {isCorrect !== null && (
-        <View
-          style={[
-            styles.feedbackContainer,
-            isCorrect ? styles.correctFeedback : styles.incorrectFeedback,
-          ]}
-        >
-          <Text style={styles.feedbackText}>
-            {isCorrect ? "Benar!" : "Salah!"}
-          </Text>
-          {!isCorrect && (
-            <Text style={styles.correctAnswerText}>
-              Jawaban Benar:{" "}
+        <View style={styles.content}>
+          <Animated.View
+            style={[
+              styles.questionContainer,
               {
-                currentQuestion.options.find(
-                  (opt) => opt.id === currentQuestion.correctAnswer
-                )?.text
-              }
-            </Text>
-          )}
-        </View>
-      )}
+                opacity: fadeAnim,
+                transform: [
+                  {
+                    translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -10],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Text style={styles.instructionText}>Pilih jawaban yang benar</Text>
+            <Text style={styles.questionText}>{currentQuestion.question}</Text>
+          </Animated.View>
 
-      {selectedOption !== null && (
-        <TouchableOpacity
-          style={styles.continueButton}
-          onPress={() => {
-            if (
-              currentQuestionIndex < quizData.length - 1 &&
-              (isCorrect || hearts > 1)
-            ) {
-              setCurrentQuestionIndex(currentQuestionIndex + 1);
-              setSelectedOption(null);
-              setIsCorrect(null);
-            } else {
-              if (!isCorrect && hearts <= 1) {
-                setGameOver(true);
+          <Animated.View
+            style={[
+              styles.optionsContainer,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  {
+                    translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -10],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            {currentQuestion.options.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={getOptionStyle(option.id)}
+                onPress={() => handleOptionSelect(option.id)}
+                disabled={selectedOption !== null}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    selectedOption &&
+                    selectedOption !== option.id &&
+                    option.id !== currentQuestion.correctAnswer &&
+                    styles.disabledOptionText,
+                  ]}
+                >
+                  {option.text}
+                </Text>
+                {selectedOption === option.id &&
+                  option.id === currentQuestion.correctAnswer && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={24}
+                      color="#58CC02"
+                      style={styles.optionIcon}
+                    />
+                  )}
+                {selectedOption === option.id &&
+                  option.id !== currentQuestion.correctAnswer && (
+                    <Ionicons
+                      name="close-circle"
+                      size={24}
+                      color="#FF4B4B"
+                      style={styles.optionIcon}
+                    />
+                  )}
+              </TouchableOpacity>
+            ))}
+          </Animated.View>
+        </View>
+
+        {isCorrect !== null && (
+          <View
+            style={[
+              styles.feedbackContainer,
+              isCorrect ? styles.correctFeedback : styles.incorrectFeedback,
+            ]}
+          >
+            <Text style={styles.feedbackText}>
+              {isCorrect ? "Benar!" : "Salah!"}
+            </Text>
+            {!isCorrect && (
+              <Text style={styles.correctAnswerText}>
+                Jawaban Benar:{" "}
+                {
+                  currentQuestion.options.find(
+                    (opt) => opt.id === currentQuestion.correctAnswer
+                  )?.text
+                }
+              </Text>
+            )}
+          </View>
+        )}
+
+        {selectedOption !== null && (
+          <TouchableOpacity
+            style={styles.continueButton}
+            onPress={() => {
+              if (
+                currentQuestionIndex < quizData.length - 1 &&
+                (isCorrect || hearts > 1)
+              ) {
+                setCurrentQuestionIndex(currentQuestionIndex + 1);
+                setSelectedOption(null);
+                setIsCorrect(null);
               } else {
-                setCompleted(true);
-                if (confettiRef.current) {
-                  confettiRef.current.startConfetti();
+                if (!isCorrect && hearts <= 1) {
+                  setGameOver(true);
+                } else {
+                  setCompleted(true);
+                  if (confettiRef.current) {
+                    confettiRef.current.startConfetti();
+                  }
                 }
               }
-            }
-          }}
-        >
-          <Text style={styles.continueButtonText}>LANJUT</Text>
-        </TouchableOpacity>
-      )}
+            }}
+          >
+            <Text style={styles.continueButtonText}>LANJUT</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
