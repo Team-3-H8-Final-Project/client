@@ -31,7 +31,7 @@ export default function Grammar() {
   const [recording, setRecording] = useState(null);
   const [recordedUri, setRecordedUri] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hearts, setHearts] = useState(4);
+  const [hearts, setHearts] = useState(40);
   const [completed, setCompleted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const confettiRef = useRef(null);
@@ -196,7 +196,7 @@ export default function Grammar() {
       });
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyA3bzCCK6ckqAkzKknoC2hDJJICM9GiZnY`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
