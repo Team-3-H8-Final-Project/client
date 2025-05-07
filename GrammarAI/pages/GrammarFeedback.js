@@ -227,7 +227,7 @@ useEffect(() => {
             <TouchableOpacity
   style={styles.button}
   onPress={() => {
-    route.params?.resetGrammar?.();
+    // route.params?.resetGrammar?.();
     navigation.goBack();
   }}
 >
