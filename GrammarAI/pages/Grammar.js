@@ -16,9 +16,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import axiosInstance from "../helpers/axiosInstance";
 import { getSecure } from "../helpers/secureStore";
-// Add these new imports at the top
 import Confetti from "react-native-confetti";
 import { useNavigation } from "@react-navigation/native";
+
 export default function Grammar() {
   const navigation = useNavigation();
   const [isListening, setIsListening] = useState(false);
@@ -31,7 +31,7 @@ export default function Grammar() {
   const [recording, setRecording] = useState(null);
   const [recordedUri, setRecordedUri] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hearts, setHearts] = useState(3);
+  const [hearts, setHearts] = useState(4);
   const [completed, setCompleted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const confettiRef = useRef(null);
@@ -51,7 +51,20 @@ export default function Grammar() {
       try {
         const token = await getSecure("access_token");
         if (!token) throw new Error("Token not found");
-        const level = "Pemula"; //nanti di jadikan dinamis ya...
+        
+        // Mengambil currentLevelId secara dinamis
+        const currentLevelId = await getSecure("currentLevelId");
+        let level = "Pemula"; // Default level
+        if (currentLevelId === "1") {
+          level = "Pemula";
+        } else if (currentLevelId === "2") {
+          level = "Menengah";
+        } else if (currentLevelId === "3") {
+          level = "Lanjutan";
+        } else if (currentLevelId === "4") {
+          level = "Fasih";
+        }
+
         const response = await axiosInstance.get(`/grammar?level=${level}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -183,7 +196,7 @@ export default function Grammar() {
       });
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
