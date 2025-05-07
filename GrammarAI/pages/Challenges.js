@@ -39,7 +39,7 @@ const Challenges = () => {
         {challengeTopics.map((item, index) => (
           <ChallengeCard
             key={index}
-            title={item.title}
+            title={item.name}
             description={item.description}
             imgUrl={item.imgUrl}
           />

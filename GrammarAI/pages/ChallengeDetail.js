@@ -13,6 +13,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import axiosInstance from "../helpers/axiosInstance";
 import { getSecure } from "../helpers/secureStore";
+import { ScrollView } from "react-native-web";
 
 const { width } = Dimensions.get("window");
 
@@ -33,39 +34,51 @@ const ChallengeDetail = () => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
+
+  // convert to desirable format (e.g Food and Drinks -> food-and-drinks)
   useEffect(() => {
     const fetchQuizData = async () => {
       try {
         setLoading(true);
         const token = await getSecure("access_token");
-        const desiredLevel = "Pemula"; // ini maksudnya
-        const response = await axiosInstance.get(`/challenge?theme=${theme}`, {
+        const currentLevelId = await getSecure("currentLevelId");
+        let levelString
+        if (currentLevelId === "1") {
+          levelString = "Pemula"
+        } else if (currentLevelId === "2") {
+          levelString = "Menengah"
+        } else if (currentLevelId === "3") {
+          levelString = "Lanjutan"
+        } else if (currentLevelId === "4") {
+          levelString = "Fasih"
+        } else {
+          levelString = "Pemula"
+        }
+        const formattedTheme = theme.toLowerCase().replace(/\s+/g, "-");
+        const response = await axiosInstance.get(`/challenge?theme=${formattedTheme}&level=${levelString}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         const data = response.data.data;
         // filter berdasarkan level
-        const filteredData = data.filter(item => item.level === desiredLevel);
-        // Transform the API data to match our quiz format
-        const limitedData = filteredData.slice(0, 5);
-        const formattedData = limitedData.map((item, index) => ({
-                    id: item.id,
-                    question: item.question,
-                    options: item.options.map((option, i) => ({
-                      id: String.fromCharCode(97 + i), // a, b, c, d
-                      text: option,
-                    })),
-                    correctAnswer: String.fromCharCode(97 + item.options.indexOf(item.answer)), // find index of correct answer
-                  }));
-        
+        const formattedData = data.map((item, index) => ({
+          id: item.id,
+          question: item.question,
+          options: item.options.map((option, i) => ({
+            id: String.fromCharCode(97 + i), // a, b, c, d
+            text: option,
+          })),
+          correctAnswer: String.fromCharCode(97 + item.options.indexOf(item.answer)), // find index of correct answer
+        }));
+
         setQuizData(formattedData);
         setLoading(false);
       } catch (err) {
         setError(err.message);
         setLoading(false);
         console.log(err.response); // Lihat response error lengkap
-  setError(err.response?.data?.message || err.message);
+        setError(err.response?.data?.message || err.message);
       }
     };
 
@@ -75,7 +88,7 @@ const ChallengeDetail = () => {
   useEffect(() => {
     if (quizData.length > 0) {
       const progress = (currentQuestionIndex / quizData.length) * 100;
-      
+
       Animated.timing(progressAnim, {
         toValue: progress,
         duration: 300,
@@ -108,7 +121,7 @@ const ChallengeDetail = () => {
 
   const handleOptionSelect = (optionId) => {
     if (!quizData[currentQuestionIndex]) return;
-    
+
     setSelectedOption(optionId);
     const isAnswerCorrect = optionId === quizData[currentQuestionIndex].correctAnswer;
     setIsCorrect(isAnswerCorrect);
@@ -231,7 +244,6 @@ const ChallengeDetail = () => {
         barStyle="light-content"
         backgroundColor="rgba(0, 0, 0, 0.2)"
       />
-
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.counterText}>
@@ -239,6 +251,7 @@ const ChallengeDetail = () => {
           </Text>
         </View>
 
+        {/*TODO wrap below with scrollview */}
         <View style={styles.progressContainer}>
           <Animated.View
             style={[styles.progressBar, { width: progressWidth }]}
@@ -343,11 +356,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   questionText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     textAlign: "center",
     color: "#333",
-    lineHeight: 26,
+    lineHeight: 22,
   },
   optionsContainer: {
     width: "100%",
@@ -355,8 +368,8 @@ const styles = StyleSheet.create({
   option: {
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     padding: 16,
-    borderRadius: 50,
-    marginBottom: 20,
+    borderRadius: 24,
+    marginBottom: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -374,7 +387,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#333",
     textAlign: "center",
   },
