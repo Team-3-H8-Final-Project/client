@@ -1,6 +1,7 @@
+import { GEMINI_API } from "@env";
 import { useEffect, useState, useRef } from "react";
-import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system";
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import {
   StyleSheet,
   View,
@@ -11,16 +12,16 @@ import {
   Platform,
   StatusBar,
   ActivityIndicator,
+  Alert,
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axiosInstance from "../helpers/axiosInstance";
 import { getSecure } from "../helpers/secureStore";
-// Add these new imports at the top
-import Confetti from "react-native-confetti";
 import { useNavigation } from "@react-navigation/native";
+import FeedbackGrammar from "./FeedbackGrammar";
+
 export default function Grammar() {
-  const navigation = useNavigation();
   const [isListening, setIsListening] = useState(false);
   const [result, setResult] = useState("");
   const [showResult, setShowResult] = useState(false);
@@ -31,16 +32,15 @@ export default function Grammar() {
   const [recording, setRecording] = useState(null);
   const [recordedUri, setRecordedUri] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hearts, setHearts] = useState(3);
+  const [userAnswers, setUserAnswers] = useState([]);
   const [completed, setCompleted] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
-  const confettiRef = useRef(null);
-
-  // Animation refs
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [score, setScore] = useState(0);
+  const [feedbackPayload, setFeedbackPayload] = useState({ answers: [] });
+  const navigation = useNavigation();
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const bounceAnim = useRef(new Animated.Value(1)).current;
 
   const currentQuestion = grammarData[currentIndex] || {};
   const targetSentence = currentQuestion.answer || "";
@@ -51,14 +51,16 @@ export default function Grammar() {
       try {
         const token = await getSecure("access_token");
         if (!token) throw new Error("Token not found");
-        const level = "Pemula"; //nanti di jadikan dinamis ya...
+        let level = "Pemula" //nanti di jadikan dinamis ya...
         const response = await axiosInstance.get(`/grammar?level=${level}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          
         });
 
         setGrammarData(response.data.data || []);
+       
       } catch (error) {
         console.error("Error fetching grammar data:", error.message);
         console.error("Details:", error.response?.data || error);
@@ -70,40 +72,62 @@ export default function Grammar() {
     fetchGrammarData();
   }, []);
 
-  // Update progress bar when current index changes
   useEffect(() => {
-    if (grammarData.length > 0) {
-      const progress = (currentIndex / grammarData.length) * 100;
-
-      Animated.timing(progressAnim, {
-        toValue: progress,
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-
-      if (currentIndex > 0) {
-        Animated.sequence([
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          Animated.timing(slideAnim, {
-            toValue: 1,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          slideAnim.setValue(0);
-        });
-      }
+    if (completed) {
+      // Calculate score when completed
+      const correctCount = userAnswers.filter(answer => 
+        answer.userAnswer.toLowerCase().includes(answer.correctAnswer.toLowerCase())
+      ).length;
+      setScore(correctCount);
+      
+      // Start animations
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-  }, [currentIndex, grammarData]);
+  }, [completed]);
+
+  const saveUserAnswer = () => {
+    if (!currentQuestion || !currentQuestion.answer || !currentQuestion.question) {
+      console.error("Invalid currentQuestion data:", currentQuestion);
+      return;
+    }
+  
+    const answerData = {
+      questionId: currentQuestion.id || "unknown",
+      question: currentQuestion.question || "unknown",
+      correctAnswer: currentQuestion.answer || "unknown",
+      userAnswer: result || "unknown",
+    };
+  
+    setUserAnswers(prev => [...prev, answerData]);
+  };
+  
+  
+  // const submitFeedback = async () => {
+  //   try {
+  //     const token = await getSecure("access_token");
+  //     await axiosInstance.post("/feedback/grammar", {
+  //       answers: userAnswers,
+  //     }, {
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
+  //     console.log("Feedback berhasil dikirim");
+  //   } catch (error) {
+  //     console.error("Gagal mengirim feedback:", error.response?.data || error);
+  //   }
+  // };
 
   const startListening = async () => {
     try {
@@ -111,32 +135,16 @@ export default function Grammar() {
       setIsListening(true);
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) return;
-
+  
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
-
+  
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       setRecording(recording);
-
-      // Animate the bounce effect
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(bounceAnim, {
-            toValue: 1.05,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(bounceAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
     } catch (err) {
       console.error("Gagal memulai rekaman:", err);
     }
@@ -149,11 +157,7 @@ export default function Grammar() {
       const uri = recording.getURI();
       setRecordedUri(uri);
       setRecording(null);
-
-      // Stop the bounce animation
-      bounceAnim.setValue(1);
-      Animated.timing(bounceAnim).stop();
-
+  
       await processAudioWithGemini(uri);
     } catch (err) {
       console.error("Gagal menghentikan rekaman:", err);
@@ -174,161 +178,161 @@ export default function Grammar() {
     }
   };
 
-  // Modify the processAudioWithGemini function to check for hearts
+  // const processAudioWithGemini = async (uri) => {
+  //   try {
+  //     setLoading(true);
+  //     const base64Audio = await FileSystem.readAsStringAsync(uri, {
+  //       encoding: FileSystem.EncodingType.Base64,
+  //     });
+  
+  //     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API}`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         contents: [
+  //           {
+  //             role: 'user',
+  //             parts: [
+  //               {
+  //                 inlineData: {
+  //                   mimeType: 'audio/m4a',
+  //                   data: base64Audio,
+  //                 },
+  //               },
+  //               {
+  //                 text: 'Transkripkan isi suara ini ke dalam teks bahasa Inggris tanpa penjelasan tambahan.',
+  //               }
+  //             ],
+  //           },
+  //         ],
+  //       }),
+  //     });
+  
+  //     const data = await response.json();
+  //     const transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  //     setResult(transcript);
+  //     setIsCorrect(transcript.toLowerCase().includes(targetSentence.toLowerCase()));
+  //     setShowResult(true);
+  //   } catch (err) {
+  //     console.error("Gagal memproses audio dengan Gemini:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const processAudioWithGemini = async (uri) => {
     try {
       setLoading(true);
       const base64Audio = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    inlineData: {
-                      mimeType: "audio/m4a",
-                      data: base64Audio,
-                    },
+  
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'audio/m4a',
+                    data: base64Audio,
                   },
-                  {
-                    text: "Transkripkan isi suara ini ke dalam teks bahasa Inggris tanpa penjelasan tambahan.",
-                  },
-                ],
-              },
-            ],
-          }),
-        }
-      );
-
+                },
+                {
+                  text: 'Transkripkan isi suara ini ke dalam teks bahasa Inggris tanpa penjelasan tambahan.',
+                }
+              ],
+            },
+          ],
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Gagal mendapatkan respons dari Gemini API');
+      }
+  
       const data = await response.json();
       const transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      setResult(transcript);
-      const correct = transcript
-        .toLowerCase()
-        .includes(targetSentence.toLowerCase());
-      setIsCorrect(correct);
-      setShowResult(true);
-
-      if (!correct) {
-        const newHearts = Math.max(0, hearts - 1);
-        setHearts(newHearts);
+      if (!transcript) {
+        throw new Error('Transkrip tidak ditemukan dalam respons');
       }
+      setResult(transcript);
+      setIsCorrect(transcript.toLowerCase().includes(targetSentence.toLowerCase()));
+      setShowResult(true);
     } catch (err) {
       console.error("Gagal memproses audio dengan Gemini:", err);
-      // Fallback for testing
-      const randomCorrect = Math.random() > 0.3;
-      setResult(randomCorrect ? targetSentence : "How is you today?");
-      setIsCorrect(randomCorrect);
-      setShowResult(true);
-
-      if (!randomCorrect) {
-        const newHearts = Math.max(0, hearts - 1);
-        setHearts(newHearts);
-      }
+      Alert.alert('Kesalahan', 'Terjadi masalah saat memproses audio. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
   };
+  
 
-  const handleContinue = () => {
-    if (hearts <= 0) {
-      setGameOver(true);
-      return;
-    }
-
+  const handleContinue = async () => {
+    const answerData = {
+      questionId: currentQuestion.id || "unknown",
+      question: currentQuestion.question || "unknown",
+      correctAnswer: currentQuestion.answer || "unknown",
+      userAnswer: result || "unknown",
+    };
+  
+    const updatedAnswers = [...userAnswers, answerData];
+    setUserAnswers(updatedAnswers);
+    console.log(updatedAnswers)
+  
     if (currentIndex < grammarData.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setShowResult(false);
-      setResult("");
-      setRecordedUri(null);
     } else {
       setCompleted(true);
-      if (confettiRef.current) {
-        confettiRef.current.startConfetti();
+      const finalScore = updatedAnswers.filter(a =>
+        a.userAnswer.toLowerCase().includes(a.correctAnswer.toLowerCase())
+      ).length;
+      try {
+        const token = await getSecure("access_token");
+    
+        const res = await axiosInstance.post(
+          "/feedback/grammar",
+          {
+            answers: updatedAnswers,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+    
+        if (res?.data?.id) {
+          const feedbackId = res.data.id;
+          console.log("Feedback berhasil dikirim ke database: " + feedbackId);
+    
+          navigation.navigate("FeedbackGrammar", {
+            score: Math.round((finalScore / grammarData.length) * 100),
+            feedbackId,
+          });
+        } else {
+          console.warn("Feedback response tidak sesuai:", res?.data);
+        }
+      } catch (error) {
+        console.error("Gagal mengirim feedback:", error.message);
       }
     }
+  // iya yang evaluation genrate
+    setShowResult(false);
+    setResult("");
   };
+  
+  
 
-  useEffect(() => {
-    if (hearts <= 0 && showResult && !isCorrect) {
-      const timer = setTimeout(() => {
-        setGameOver(true);
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [hearts, showResult, isCorrect]);
-
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 100],
-    outputRange: ["0%", "100%"],
-  });
-
-  if (loading && grammarData.length === 0) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#58CC02" />
-          <Text style={styles.loadingText}>Memuat soal...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (gameOver) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.closeButton}
-          >
-            <Ionicons name="close" size={24} color="#AFAFAF" />
-          </TouchableOpacity>
-
-          <View style={styles.heartsContainer}>
-            <Ionicons
-              name="heart"
-              size={20}
-              color="#AFAFAF"
-              style={styles.heartIcon}
-            />
-            <Text style={styles.heartText}>0</Text>
-          </View>
-        </View>
-
-        <View style={styles.gameOverContainer}>
-          <Image
-            source={require("../assets/logo.png")}
-            style={styles.gameOverImage}
-          />
-          <Text style={styles.gameOverTitle}>Oops! Anda kehabisan nyawa</Text>
-          <Text style={styles.gameOverText}>
-            Coba lagi untuk meningkatkan kemampuan grammar Anda
-          </Text>
-
-          <TouchableOpacity
-            style={styles.tryAgainButton}
-            onPress={() => {
-              setHearts(3);
-              setCurrentIndex(0);
-              setGameOver(false);
-              setShowResult(false);
-              setResult("");
-            }}
-          >
-            <Text style={styles.tryAgainButtonText}>COBA LAGI</Text>
-          </TouchableOpacity>
+          <ActivityIndicator size="large" color="#1cb0f6" />
+          <Text style={{ marginTop: 10 }}>Memuat soal...</Text>
         </View>
       </SafeAreaView>
     );
@@ -337,134 +341,50 @@ export default function Grammar() {
   if (completed) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.closeButton}
-          >
-            <Ionicons name="close" size={24} color="#AFAFAF" />
-          </TouchableOpacity>
-
-          <View style={styles.heartsContainer}>
-            {[...Array(hearts)].map((_, i) => (
-              <Ionicons
-                key={i}
-                name="heart"
-                size={20}
-                color="#FF4B4B"
-                style={styles.heartIcon}
-              />
-            ))}
-          </View>
-        </View>
-
-        <Confetti ref={confettiRef} />
-
-        <View style={styles.completionContainer}>
-          <Image
-            source={require("../assets/logo.png")}
-            style={styles.gameOverImage}
-          />
-          <Text style={styles.completionTitle}>Selamat!</Text>
-          <Text style={styles.completionText}>
-            Anda telah menyelesaikan semua latihan grammar!
+        <Animated.View
+          style={[
+            styles.completedContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                {
+                  translateY: slideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Text style={styles.completedTitle}>Challenge Completed!</Text>
+          <Text style={styles.scoreText}>
+            Your score: {score}/{grammarData.length} ({Math.round((score / grammarData.length) * 100)}%)
           </Text>
-
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{grammarData.length}</Text>
-              <Text style={styles.statLabel}>Soal</Text>
-            </View>
-
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{hearts}</Text>
-              <Text style={styles.statLabel}>Nyawa</Text>
-            </View>
-          </View>
-
           <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => navigation.navigate("GrammarFeedback")}
+            style={styles.restartButton}
+            onPress={() => navigation.navigate("FeedbackGrammar", {
+              score: Math.round((score / grammarData.length) * 100),
+  maxScore: 100,
+            })}
           >
-            <Text style={styles.continueButtonText}>SELESAI</Text>
+            <Text style={styles.restartButtonText}>See your feedback</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </SafeAreaView>
     );
   }
 
-  // Keep the original return for the main game screen
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.closeButton}
-        >
-          <Ionicons name="close" size={24} color="#AFAFAF" />
-        </TouchableOpacity>
-
-        <View style={styles.heartsContainer}>
-          {[...Array(hearts)].map((_, i) => (
-            <Ionicons
-              key={i}
-              name="heart"
-              size={20}
-              color="#FF4B4B"
-              style={styles.heartIcon}
-            />
-          ))}
-        </View>
-      </View>
-
-      {/* Progress bar */}
-      <View style={styles.progressContainer}>
-        <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
-      </View>
-
       <View style={styles.content}>
-        <Animated.View
-          style={[
-            styles.instructionContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -10],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Text style={styles.instructionLabel}>Latihan Grammar</Text>
+        <View style={styles.instructionContainer}>
           <Text style={styles.instructionText}>
             Bentuklah kalimat berikut dalam bahasa Inggris
           </Text>
-        </Animated.View>
+        </View>
 
-        <Animated.View
-          style={[
-            styles.characterContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -10],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
+        <View style={styles.characterContainer}>
           <Image
             source={require("../assets/logo.png")}
             style={styles.characterImage}
@@ -473,24 +393,9 @@ export default function Grammar() {
             <Ionicons name="volume-medium" size={20} color="#1cb0f6" />
             <Text style={styles.audioText}>{audioPhrase}</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
 
-        <Animated.View
-          style={[
-            styles.inputContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -10],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
+        <View style={styles.inputContainer}>
           {showResult ? (
             <View
               style={[
@@ -498,16 +403,12 @@ export default function Grammar() {
                 isCorrect ? styles.correctResult : styles.incorrectResult,
               ]}
             >
-              <Text style={[styles.resultText, { fontWeight: "bold" }]}>
-                Kamu berkata:
-              </Text>
+              <Text style={[styles.resultText, { fontWeight: 'bold' }]}>Kamu berkata:</Text>
               <Text style={styles.resultText}>{result}</Text>
 
               <View style={{ height: 12 }} />
 
-              <Text style={[styles.resultText, { fontWeight: "bold" }]}>
-                Jawaban yang benar:
-              </Text>
+              <Text style={[styles.resultText, { fontWeight: 'bold' }]}>Jawaban yang benar:</Text>
               <Text style={styles.resultText}>{targetSentence}</Text>
             </View>
           ) : (
@@ -517,68 +418,52 @@ export default function Grammar() {
               </Text>
             </View>
           )}
-        </Animated.View>
+        </View>
       </View>
 
       <View style={styles.buttonContainer}>
         {!showResult ? (
-          <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
-            <TouchableOpacity
-              style={[
-                styles.speakButton,
-                isListening && styles.speakButtonActive,
-              ]}
-              onPress={isListening ? stopRecording : startListening}
-              disabled={loading}
-            >
-              <Ionicons name="mic" size={24} color="white" />
-              <Text style={styles.speakButtonText}>
-                {isListening ? "Menghentikan..." : "Bicara Sekarang"}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+          <TouchableOpacity
+            style={[styles.speakButton, isListening && styles.speakButtonActive]}
+            onPress={isListening ? stopRecording : startListening}
+            disabled={loading}
+          >
+            <Ionicons name="mic" size={24} color="white" />
+            <Text style={styles.speakButtonText}>
+              {isListening ? "Menghentikan..." : "Bicara Sekarang"}
+            </Text>
+          </TouchableOpacity>
         ) : (
           <View style={styles.feedbackContainer}>
-            <View
+            <Text
               style={[
-                styles.feedbackBanner,
-                isCorrect ? styles.correctFeedback : styles.incorrectFeedback,
+                styles.feedbackText,
+                isCorrect ? styles.correctText : styles.incorrectText,
               ]}
             >
-              <Text
-                style={[
-                  styles.feedbackText,
-                  isCorrect ? styles.correctText : styles.incorrectText,
-                ]}
-              >
-                {isCorrect ? "Benar!" : "Kurang Benar"}
-              </Text>
-            </View>
-
+              {isCorrect ? "Benar!" : "Kurang Benar"}
+            </Text>
             {recordedUri && (
               <TouchableOpacity
                 style={[
-                  styles.playButton,
-                  isPlaying
-                    ? styles.playButtonActive
-                    : styles.playButtonInactive,
+                  styles.continueButton,
+                  isPlaying ? styles.playButtonActive : styles.playButtonInactive,
                 ]}
                 onPress={playRecording}
                 disabled={isPlaying}
               >
-                <Ionicons
-                  name={isPlaying ? "pause" : "play"}
-                  size={20}
-                  color="white"
-                />
-                <Text style={styles.playButtonText}>
+                <Text style={styles.continueButtonText}>
                   {isPlaying ? "Memutar..." : "Putar Rekaman"}
                 </Text>
               </TouchableOpacity>
             )}
-
+            
             <TouchableOpacity
-              style={styles.continueButton}
+              style={[
+                styles.continueButton,
+                !isPlaying ? styles.continueButtonActive : styles.continueButtonInactive,
+                {marginTop: 10}
+              ]}
               onPress={handleContinue}
             >
               <Text style={styles.continueButtonText}>LANJUT</Text>
@@ -590,153 +475,100 @@ export default function Grammar() {
   );
 }
 
-// Add these new styles to the StyleSheet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  closeButton: {
-    padding: 4,
-  },
-
-  heartsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  heartIcon: {
-    marginLeft: 4,
-  },
-  progressContainer: {
-    height: 8,
-    backgroundColor: "#E5E5E5",
-    width: "100%",
-  },
-  progressBar: {
-    height: "100%",
-    backgroundColor: "#58CC02",
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#3C3C3C",
-  },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+  },
+  buttonContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   instructionContainer: {
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  instructionLabel: {
-    fontSize: 14,
-    color: "#AFAFAF",
-    marginBottom: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   instructionText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
-    color: "#3C3C3C",
+    color: "#4b4b4b",
   },
   characterContainer: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 20,
     marginBottom: 24,
   },
   characterImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "#f0f0f0",
   },
   audioButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F7F7F7",
+    backgroundColor: "#f7f7f7",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 16,
     marginLeft: 12,
     flex: 1,
-    borderWidth: 2,
-    borderColor: "#E5E5E5",
   },
   audioText: {
     marginLeft: 8,
-    color: "#3C3C3C",
+    color: "#4b4b4b",
     fontSize: 16,
   },
   inputContainer: {
+    paddingHorizontal: 20,
     marginBottom: 24,
   },
   emptyInputContainer: {
-    borderWidth: 2,
-    borderColor: "#E5E5E5",
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    minHeight: 100,
-    justifyContent: "center",
-    backgroundColor: "#FAFAFA",
+    borderBottomWidth: 2,
+    borderBottomColor: "#e5e5e5",
+    paddingVertical: 12,
+    minHeight: 50,
   },
   placeholderText: {
-    color: "#AFAFAF",
+    color: "#ccc",
     fontSize: 16,
-    textAlign: "center",
   },
   resultContainer: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    minHeight: 100,
-    borderWidth: 2,
+    borderRadius: 8,
+    minHeight: 50,
   },
   correctResult: {
-    backgroundColor: "#E7F9E0",
-    borderColor: "#58CC02",
+    backgroundColor: "#e7f9e0",
   },
   incorrectResult: {
-    backgroundColor: "#FFEBEB",
-    borderColor: "#FF4B4B",
+    backgroundColor: "#ffebeb",
   },
   resultText: {
     fontSize: 16,
-    color: "#3C3C3C",
-    lineHeight: 22,
-  },
-  buttonContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    color: "#4b4b4b",
   },
   speakButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#58CC02",
+    backgroundColor: "#58cc02",
     paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: "#58CC02",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    borderRadius: 50,
   },
   speakButtonActive: {
-    backgroundColor: "#FF9600",
+    backgroundColor: "#ff9600",
   },
   speakButtonText: {
     color: "white",
@@ -747,161 +579,69 @@ const styles = StyleSheet.create({
   feedbackContainer: {
     width: "100%",
   },
-  feedbackBanner: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  correctFeedback: {
-    backgroundColor: "#E7F9E0",
-  },
-  incorrectFeedback: {
-    backgroundColor: "#FFEBEB",
-  },
   feedbackText: {
     fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 16,
+    textAlign: "center",
   },
   correctText: {
-    color: "#58CC02",
+    color: "#58cc02",
   },
   incorrectText: {
-    color: "#FF4B4B",
-  },
-  playButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  playButtonActive: {
-    backgroundColor: "#FF9600",
-  },
-  playButtonInactive: {
-    backgroundColor: "#1CB0F6",
-  },
-  playButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-    marginLeft: 8,
+    color: "#ff4b4b",
   },
   continueButton: {
-    backgroundColor: "#58CC02",
+    backgroundColor: "#58cc02",
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 50,
     alignItems: "center",
-    shadowColor: "#58CC02",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
   continueButtonText: {
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
-    paddingHorizontal: 32,
   },
-  helpButton: {
-    position: "absolute",
-    bottom: 24,
-    left: 16,
+  playButtonActive: {
+    backgroundColor: "#ff9600",
   },
-  // Add these new styles for completion and game over screens
-  completionContainer: {
+  playButtonInactive: {
+    backgroundColor: "#1cb0f6",
+  },
+  continueButtonActive: {
+    backgroundColor: "#58cc02",
+  },
+  continueButtonInactive: {
+    backgroundColor: "#ccc",
+  },
+  completedContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  completionImage: {
-    width: 150,
-    height: 150,
-    marginBottom: 24,
+  completedTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#58cc02',
+    marginBottom: 20,
+    textAlign: 'center',
   },
-  completionTitle: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#58CC02",
-    marginBottom: 12,
-    textAlign: "center",
+  scoreText: {
+    fontSize: 22,
+    color: '#4b4b4b',
+    marginBottom: 30,
   },
-  completionText: {
-    fontSize: 18,
-    color: "#3C3C3C",
-    marginBottom: 32,
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-    marginBottom: 32,
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1CB0F6",
-  },
-  statLabel: {
-    fontSize: 14,
-    color: "#AFAFAF",
-    marginTop: 4,
-  },
-  gameOverContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  gameOverImage: {
-    width: 120,
-    height: 120,
-    marginBottom: 24,
-    opacity: 0.7,
-  },
-  gameOverTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FF4B4B",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  gameOverText: {
-    fontSize: 16,
-    color: "#3C3C3C",
-    marginBottom: 32,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  tryAgainButton: {
-    backgroundColor: "#FF4B4B",
+  restartButton: {
+    backgroundColor: '#1cb0f6',
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    shadowColor: "#FF4B4B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    borderRadius: 50,
+    marginTop: 20,
   },
-  tryAgainButtonText: {
-    color: "white",
-    fontWeight: "bold",
+  restartButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
     fontSize: 16,
-  },
-  heartText: {
-    color: "#AFAFAF",
-    fontWeight: "bold",
-    marginLeft: 4,
   },
 });
