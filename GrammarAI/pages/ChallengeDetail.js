@@ -38,42 +38,51 @@ const ChallengeDetail = () => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    const fetchQuizData = async () => {
-      try {
-        setLoading(true);
-        const token = await getSecure("access_token");
-        const desiredLevel = "Pemula";
-        const response = await axiosInstance.get(`/challenge?theme=${theme}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = response.data.data;
-        // filter berdasarkan level
-        const filteredData = data.filter((item) => item.level === desiredLevel);
-        // Transform the API data to match our quiz format
-        const limitedData = filteredData.slice(0, 5);
-        const formattedData = limitedData.map((item, index) => ({
-          id: item.id,
-          question: item.question,
-          options: item.options.map((option, i) => ({
-            id: String.fromCharCode(97 + i), // a, b, c, d
-            text: option,
-          })),
-          correctAnswer: String.fromCharCode(
-            97 + item.options.indexOf(item.answer)
-          ),
-        }));
-
-        setQuizData(formattedData);
-        setLoading(false);
-      } catch (err) {
-        setError(err.response?.data?.message || err.message);
-        setLoading(false);
+  const fetchQuizData = async () => {
+    try {
+      setLoading(true);
+      const token = await getSecure("access_token");
+      const currentLevelId = await getSecure("currentLevelId");
+      let levelString
+      if (currentLevelId === "1") {
+        levelString = "Pemula"
+      } else if (currentLevelId === "2") {
+        levelString = "Menengah"
+      } else if (currentLevelId === "3") {
+        levelString = "Lanjutan"
+      } else if (currentLevelId === "4") {
+        levelString = "Fasih"
+      } else {
+        levelString = "Pemula"
       }
-    };
+      const formattedTheme = theme.toLowerCase().replace(/\s+/g, "-");
+      const response = await axiosInstance.get(`/challenge?theme=${formattedTheme}&level=${levelString}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = response.data.data;
+      // filter berdasarkan level
+      const formattedData = data.map((item, index) => ({
+        id: item.id,
+        question: item.question,
+        options: item.options.map((option, i) => ({
+          id: String.fromCharCode(97 + i), // a, b, c, d
+          text: option,
+        })),
+        correctAnswer: String.fromCharCode(97 + item.options.indexOf(item.answer)), // find index of correct answer
+      }));
 
+      setQuizData(formattedData);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+      setError(err.response?.data?.message || err.message);
+    }
+  };
+
+  useEffect(() => {
     fetchQuizData();
   }, [theme]);
 
@@ -407,9 +416,9 @@ const ChallengeDetail = () => {
                 style={[
                   styles.optionText,
                   selectedOption &&
-                    selectedOption !== option.id &&
-                    option.id !== currentQuestion.correctAnswer &&
-                    styles.disabledOptionText,
+                  selectedOption !== option.id &&
+                  option.id !== currentQuestion.correctAnswer &&
+                  styles.disabledOptionText,
                 ]}
               >
                 {option.text}
