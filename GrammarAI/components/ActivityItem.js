@@ -1,19 +1,22 @@
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
-const ActivityItem = () => {
+import { useNavigation } from "@react-navigation/native";
+const ActivityItem = ({ id, date, score, type }) => {
+  const navigation = useNavigation();
   return (
-    <View style={styles.activityItem}>
-      <View style={styles.activityIconContainer}>
-        <Ionicons name="checkmark-circle" size={24} color="#fff" />
+    <TouchableOpacity onPress={() => navigation.navigate("Feedback", { id })}>
+      <View style={styles.activityItem}>
+        <View style={styles.activityIconContainer}>
+          <Ionicons name="checkmark-circle" size={24} color="#fff" />
+        </View>
+        <View style={styles.activityContent}>
+          <Text style={styles.activityText}>
+            Menyelesaikan {type} dengan skor {Math.round(score)}%
+          </Text>
+          <Text style={styles.activityTime}>{date}</Text>
+        </View>
       </View>
-      <View style={styles.activityContent}>
-        <Text style={styles.activityText}>
-          Completed "Travel Essentials" challenge
-        </Text>
-        <Text style={styles.activityTime}>2 days ago</Text>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

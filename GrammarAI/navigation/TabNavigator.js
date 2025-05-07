@@ -6,6 +6,7 @@ import Profile from "../pages/Profile";
 import ChallengesStack from "./ChallengeStack";
 import ConversationStack from "./ConversationStack";
 import GrammarStack from "./GrammarStack";
+import ProfileStack from "./ProfileStack";
 
 const Tab = createBottomTabNavigator();
 
@@ -62,7 +63,7 @@ export default function TabNavigator() {
       <Tab.Screen name="Challenges" component={ChallengesStack} />
       <Tab.Screen name="Conversation" component={ConversationStack} />
       <Tab.Screen name="Grammar" component={GrammarStack} />
-      <Tab.Screen name="Profile" component={Profile} />
+      <Tab.Screen name="Profile" component={ProfileStack} />
     </Tab.Navigator>
   );
 }

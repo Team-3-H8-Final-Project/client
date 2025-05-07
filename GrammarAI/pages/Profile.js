@@ -20,7 +20,7 @@ const Profile = () => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
-
+  const [history, setHistory] = useState(null);
   const handleLogout = async () => {
     try {
       await deleteSecure("access_token");
@@ -43,6 +43,13 @@ const Profile = () => {
           Authorization: `Bearer ${token}`,
         },
       });
+      const feedbacks = await axiosInstance.get("/feedback", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setHistory(feedbacks.data);
       setProfileData(response.data.data);
     } catch (error) {
       console.error("Error fetching profile data:", error.message);
@@ -108,7 +115,7 @@ const Profile = () => {
         >
           <Ionicons name="arrow-back" size={24} color="#AFAFAF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>Profil</Text>
         <TouchableOpacity style={styles.settingsButton}>
           <Ionicons name="settings-outline" size={24} color="#AFAFAF" />
         </TouchableOpacity>
@@ -128,13 +135,18 @@ const Profile = () => {
 
         <View style={styles.activityContainer}>
           <Text style={styles.sectionTitle}>Riwayat</Text>
-          {/* Activity Item */}
-          <ActivityItem />
-          <ActivityItem />
-          <ActivityItem />
+          {history &&
+            history.map((item) => (
+              <ActivityItem
+                key={item.id}
+                id={item.id}
+                date={item.createdAt}
+                score={item.totalScore}
+                type={item.testType}
+              />
+            ))}
         </View>
 
-        {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out" size={24} color="#fff" />
           <Text style={styles.logoutButtonText}>LOG OUT</Text>
