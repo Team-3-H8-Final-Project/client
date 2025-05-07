@@ -13,12 +13,6 @@ const Conversation = () => {
   const [lastMessage, setLastMessage] = useState('')
   const navigation = useNavigation()
 
-  const handleClick = () => {
-    vapi.start('baaea691-670b-4d35-b7b8-2788ffed7ae8')
-    console.log(vapi)
-    console.log('VAPI started');
-  }
-
   useEffect(() => {
     const onCallStarted = () => {
       setCallStatus('ACTIVE')

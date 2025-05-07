@@ -6,7 +6,6 @@ import Register from "../pages/Register";
 import TabNavigator from "./TabNavigator";
 import LevelLanguage from "../pages/LevelLanguage";
 import { deleteSecure, getSecure } from "../helpers/secureStore";
-import { useEffect, useState } from "react";
 
 
 const Stack = createNativeStackNavigator();

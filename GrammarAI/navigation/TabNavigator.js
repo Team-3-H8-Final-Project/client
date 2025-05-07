@@ -37,7 +37,7 @@ export default function TabNavigator() {
       })}
     >
       <Tab.Screen name="Challenges" component={ChallengesStack} />
-      <Tab.Screen name="Conversation" component={ConversationWeb} />
+      <Tab.Screen name="Conversation" component={Conversation} />
       <Tab.Screen name="Grammar" component={Grammar} />
       <Tab.Screen name="Profile" component={Profile} />
     </Tab.Navigator>
