@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system";
 import {
@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import axiosInstance from "../helpers/axiosInstance";
 import { getSecure } from "../helpers/secureStore";
 import Confetti from "react-native-confetti";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 export default function Grammar() {
   const navigation = useNavigation();
@@ -39,6 +39,7 @@ export default function Grammar() {
   const [score, setScore] = useState(0);
   const [feedbackPayload, setFeedbackPayload] = useState({ answers: [] });
   const confettiRef = useRef(null);
+  const route = useRoute();
 
   // Animation refs
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -49,7 +50,41 @@ export default function Grammar() {
   const currentQuestion = grammarData[currentIndex] || {};
   const targetSentence = currentQuestion.answer || "";
   const audioPhrase = currentQuestion.question || "";
-
+  // const resetGrammarState = () => {
+  //   setCurrentIndex(0);
+  //   setUserAnswers([]);
+  //   setScore(0);
+  //   setHearts(40);
+  //   setCompleted(false);
+  //   setGameOver(false);
+  //   setShowResult(false);
+  //   setResult("");
+  //   setRecordedUri(null);
+  // };
+  const resetGrammarState = useCallback(() => {
+    setCurrentIndex(0);
+    setUserAnswers([]);
+    setScore(0);
+    setHearts(40);
+    setCompleted(false);
+    setGameOver(false);
+    setShowResult(false);
+    setResult("");
+    setRecordedUri(null);
+  }, []);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (route.params?.reset) {
+        resetGrammarState();
+      }
+    });
+  
+    return unsubscribe;
+  }, [navigation, route.params]);
+  const handleNavigateBack = useCallback(() => {
+    resetGrammarState();
+    navigation.goBack();
+  }, [navigation]);
   useEffect(() => {
     const fetchGrammarData = async () => {
       try {
@@ -330,8 +365,9 @@ export default function Grammar() {
         const feedbackData = await submitFeedback(updatedAnswers);
         
         navigation.navigate("GrammarFeedback", {
-          score: Math.round((score / grammarData.length) * 100),
+          score: Math.round((correctCount / grammarData.length) * 100),
           feedbackId: feedbackData.id,
+          resetGrammar: resetGrammarState
         });
       } catch (error) {
         // Error is already handled in submitFeedback

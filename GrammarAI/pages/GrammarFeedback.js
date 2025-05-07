@@ -225,11 +225,14 @@ useEffect(() => {
             </View>
 
             <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.buttonText}>Back to Grammar</Text>
-            </TouchableOpacity>
+  style={styles.button}
+  onPress={() => {
+    route.params?.resetGrammar?.();
+    navigation.goBack();
+  }}
+>
+  <Text style={styles.buttonText}>Back to Grammar</Text>
+</TouchableOpacity>
           </LinearGradient>
         </ScrollView>
       )}
@@ -361,6 +364,20 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#7b68ee",
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 20,
+    shadowColor: "#7b68ee",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  reset: {
+    backgroundColor: "#ED3037",
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 30,
