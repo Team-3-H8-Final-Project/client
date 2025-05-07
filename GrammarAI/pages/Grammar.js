@@ -110,7 +110,8 @@ export default function Grammar() {
           },
         });
 
-        const allQuestions = response.data.data || [];
+    const allQuestions = response.data.data || [];
+
     const shuffledQuestions = [...allQuestions].sort(() => 0.5 - Math.random());
     const selectedQuestions = shuffledQuestions.slice(0, 5);
     setGrammarData(selectedQuestions);
@@ -366,6 +367,7 @@ export default function Grammar() {
       }
       try {
         const feedbackData = await submitFeedback(updatedAnswers);
+        // await submitFeedback(updatedAnswers);
         
         navigation.navigate("GrammarFeedback", {
           score: Math.round((correctCount / grammarData.length) * 100),
@@ -383,7 +385,49 @@ export default function Grammar() {
     setShowResult(false);
     setResult("");
   };
+// ini untuk mengatur ulang dan mendapatkan soal baru
+const resetAndFetchNewQuestions = async () => {
+  try {
+    setLoading(true);
+    
+    // Reset semua state yang diperlukan
+    setCurrentIndex(0);
+    setUserAnswers([]);
+    setScore(0);
+    setHearts(40);
+    setCompleted(false);
+    setGameOver(false);
+    setShowResult(false);
+    setResult("");
+    setRecordedUri(null);
+    
+    const token = await getSecure("access_token");
+    if (!token) throw new Error("Token not found");
+    
+    const currentLevelId = await getSecure("currentLevelId");
+    let level = "Pemula";
+    if (currentLevelId === "2") level = "Menengah";
+    else if (currentLevelId === "3") level = "Lanjutan";
+    else if (currentLevelId === "4") level = "Fasih";
 
+    // Gunakan endpoint yang konsisten (/grammar dengan parameter level)
+    const response = await axiosInstance.get(`/grammar?level=${level}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { refresh: Date.now() } // Tambahkan timestamp untuk hindari cache
+    });
+
+    const allQuestions = response.data.data || [];
+    const shuffledQuestions = [...allQuestions].sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffledQuestions.slice(0, 5);
+    
+    setGrammarData(selectedQuestions);
+    setLoading(false);
+  } catch (error) {
+    console.error("Error fetching new questions:", error);
+    Alert.alert("Error", "Gagal memuat soal baru. Silakan coba lagi.");
+    setLoading(false);
+  }
+};
   useEffect(() => {
     if (hearts <= 0 && showResult && !isCorrect) {
       const timer = setTimeout(() => {
@@ -520,11 +564,21 @@ export default function Grammar() {
           navigation.navigate("GrammarFeedback", {
             score: Math.round((correctCount / grammarData.length) * 100),
             feedbackId: feedbackPayload.id || null,
+            resetGrammar: resetGrammarState
           });
         }}
       >
         <Text style={styles.continueButtonText}>SELESAI</Text>
       </TouchableOpacity>
+      {completed && (
+  <TouchableOpacity 
+    style={styles.refreshButton}
+    onPress={resetAndFetchNewQuestions}
+  >
+    <Ionicons name="refresh" size={20} color="white" />
+    <Text style={styles.refreshButtonText}>Coba Soal Baru</Text>
+  </TouchableOpacity>
+)}
         </View>
       </SafeAreaView>
     );
@@ -1038,5 +1092,20 @@ const styles = StyleSheet.create({
     color: "#AFAFAF",
     fontWeight: "bold",
     marginLeft: 4,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1CB0F6',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  refreshButtonText: {
+    color: 'white',
+    marginLeft: 8,
+    fontWeight: 'bold',
   },
 });
