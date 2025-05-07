@@ -1,124 +1,58 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
-import { View, Text, StyleSheet, Platform } from "react-native";
-
+import { Ionicons, FontAwesome6 } from "@expo/vector-icons";
+import Conversation from "../pages/Conversation";
+import Grammar from "../pages/Grammar";
 import Profile from "../pages/Profile";
 import ChallengesStack from "./ChallengeStack";
+import Feedback from "../pages/Feedback";
+import ConversationForm from "../pages/ConversationForm";
 import ConversationStack from "./ConversationStack";
 import GrammarStack from "./GrammarStack";
-
-import ProfileStack from "./ProfileStack";
-
 const Tab = createBottomTabNavigator();
-
-const TabBarIcon = ({ focused, color, size, name, label }) => {
-  return (
-    <View style={styles.tabBarIconContainer}>
-      <View style={[styles.iconWrapper, focused && styles.activeIconWrapper]}>
-        <Ionicons name={name} size={size} color={color} />
-      </View>
-    </View>
-  );
-};
 
 export default function TabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ color, size }) => {
           let iconName;
-          let label;
-
           if (route.name === "Challenges") {
-            iconName = "trophy";
-            label = "Tantangan";
+            iconName = "puzzle-piece";
           } else if (route.name === "Conversation") {
-            iconName = "chatbubbles";
-            label = "Percakapan";
+            iconName = "chatbox-ellipses-outline";
           } else if (route.name === "Grammar") {
-            iconName = "book";
-            label = "Tata Bahasa";
+            iconName = "globe-outline";
           } else if (route.name === "Profile") {
-            iconName = "person";
-            label = "Profil";
+            iconName = "person-outline";
           }
 
-          return (
-            <TabBarIcon
-              focused={focused}
-              name={iconName}
-              color={color}
-              size={size}
-              label={label}
-            />
-          );
+          if (route.name === "Challenges") {
+            return <FontAwesome6 name={iconName} size={size} color={color} />;
+          }
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: "#58CC02",
-        tabBarInactiveTintColor: "#AFAFAF",
+        tabBarActiveTintColor: "#2e64e5",
+        tabBarInactiveTintColor: "gray",
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarShowLabel: false,
-        tabBarHideOnKeyboard: true,
       })}
     >
       <Tab.Screen name="Challenges" component={ChallengesStack} />
       <Tab.Screen name="Conversation" component={ConversationStack} />
-
       {/* <Tab.Screen name="Grammar" component={GrammarStack} /> */}
       <Tab.Screen
   name="Grammar"
   component={GrammarStack}
   listeners={({ navigation }) => ({
     tabPress: e => {
-      // Prevent default behavior
       e.preventDefault();
-      // Force navigate to initial screen of GrammarStack
       navigation.navigate('Grammar', {
-        screen: 'Grammar', // <- nama screen di GrammarStack
+        screen: 'Grammar',
       });
     },
   })}
 />
 
       <Tab.Screen name="Profile" component={Profile} />
-
-      <Tab.Screen name="Grammar" component={GrammarStack} />
-      <Tab.Screen name="Profile" component={ProfileStack} />
-
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: "#fff",
-    borderTopWidth: 0,
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    height: 70,
-    paddingBottom: Platform.OS === "ios" ? 30 : 20,
-    paddingTop: 10,
-  },
-  tabBarIconContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  activeIconWrapper: {
-    backgroundColor: "#E7F9E0",
-  },
-  tabLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-});
