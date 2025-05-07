@@ -227,7 +227,7 @@ export default function Grammar() {
         encoding: FileSystem.EncodingType.Base64,
       });
   
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyA3bzCCK6ckqAkzKknoC2hDJJICM9GiZnY`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
