@@ -34,6 +34,7 @@ const Login = () => {
           password,
         },
       });
+<<<<<<< HEAD
       const accessToken = result.data.access_token;
       const id = result.data.id;
       alert(`Login Success`);
@@ -42,6 +43,15 @@ const Login = () => {
       // navigation.replace("MainApp")
       await saveSecure("access_token", accessToken);
       await saveSecure("userId", id);
+=======
+      const accessToken = result.data.access_token
+      navigation.replace("LevelLanguage");
+
+      // navigation.replace("MainApp")
+      await saveSecure('access_token', accessToken)
+      await saveSecure('userId', id)
+
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
     } catch (error) {
       if (error.response.data) {
         alert(`${error.response.data.message}`);

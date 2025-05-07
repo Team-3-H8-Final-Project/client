@@ -115,8 +115,13 @@ const Profile = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+<<<<<<< HEAD
         {/* Profile Info */}
         <View style={styles.profileContainer}>
+=======
+
+        <View style={styles.header}>
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
           <Image
             source={require("../assets/logo.png")}
             style={styles.avatar}
@@ -126,6 +131,34 @@ const Profile = () => {
           <Text style={styles.bio}>{profileData.motivation}</Text>
         </View>
 
+<<<<<<< HEAD
+=======
+
+        <View style={styles.progressContainer}>
+          <Text style={styles.progressText}>Learning Progress</Text>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: "75%" }]} />
+          </View>
+          <Text style={styles.progressPercentage}>75% Completed</Text>
+        </View>
+
+        {/* Statistics Section */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statLabel}>Challenges Done</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>8</Text>
+            <Text style={styles.statLabel}>Conversations Tried</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>92%</Text>
+            <Text style={styles.statLabel}>Grammar Accuracy</Text>
+          </View>
+        </View>
+
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
         <View style={styles.activityContainer}>
           <Text style={styles.sectionTitle}>Riwayat</Text>
           {/* Activity Item */}
@@ -134,20 +167,36 @@ const Profile = () => {
           <ActivityItem />
         </View>
 
+<<<<<<< HEAD
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out" size={24} color="#fff" />
           <Text style={styles.logoutButtonText}>LOG OUT</Text>
         </TouchableOpacity>
+=======
+        <View style={styles.navButtons}>
+          <TouchableOpacity style={styles.navButton}>
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+            <Text style={styles.navButtonText}>Log Out</Text>
+          </TouchableOpacity>
+        </View>
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  // center the content in container
   container: {
     flex: 1,
+<<<<<<< HEAD
     backgroundColor: "#fff",
+=======
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
   },
   loadingContainer: {
     flex: 1,
@@ -317,10 +366,19 @@ const styles = StyleSheet.create({
   achievementItem: {
     flexDirection: "row",
     alignItems: "center",
+<<<<<<< HEAD
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E5E5",
+=======
+    backgroundColor: "#e63946",
+    padding: 15,
+    borderRadius: 12,
+    flex: 1,
+    marginHorizontal: 5,
+    justifyContent: "center",
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
   },
   achievementItem: {
     flexDirection: "row",

@@ -7,6 +7,7 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 
+<<<<<<< HEAD
 const colors = [
   "#4ecdc4", // Fluency
   "#ff9f1c", // Pronunciation
@@ -15,6 +16,19 @@ const colors = [
 ];
 
 const SkillBar = ({ label, score, maxScore, delay = 0 }) => {
+=======
+// Helper function to generate a random color
+const getRandomColor = () => {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+};
+
+const SkillBar = ({ label, score, maxScore, color = getRandomColor(), delay = 0 }) => {
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
   const width = useSharedValue(0);
 
   // Randomly select a color from the colors array
@@ -80,4 +94,8 @@ const styles = StyleSheet.create({
   },
 });
 
+<<<<<<< HEAD
 export default SkillBar;
+=======
+export default SkillBar;
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21

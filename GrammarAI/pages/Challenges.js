@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
 import ChallengeCard from "../components/ChallengeCard";
+<<<<<<< HEAD
 import { deleteSecure, getSecure } from "../helpers/secureStore";
+=======
+import { getSecure } from "../helpers/secureStore";
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
 import axiosInstance from "../helpers/axiosInstance";
 
 const Challenges = () => {

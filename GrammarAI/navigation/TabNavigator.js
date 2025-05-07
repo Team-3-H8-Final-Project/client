@@ -5,7 +5,11 @@ import { View, Text, StyleSheet, Platform } from "react-native";
 import Profile from "../pages/Profile";
 import ChallengesStack from "./ChallengeStack";
 import ConversationStack from "./ConversationStack";
+<<<<<<< HEAD
 import GrammarStack from "./GrammarStack";
+=======
+import ConversationWeb from "../pages/ConversationWeb";
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
 
 const Tab = createBottomTabNavigator();
 
@@ -60,8 +64,13 @@ export default function TabNavigator() {
       })}
     >
       <Tab.Screen name="Challenges" component={ChallengesStack} />
+<<<<<<< HEAD
       <Tab.Screen name="Conversation" component={ConversationStack} />
       <Tab.Screen name="Grammar" component={GrammarStack} />
+=======
+      <Tab.Screen name="Conversation" component={ConversationWeb} />
+      <Tab.Screen name="Grammar" component={Grammar} />
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
       <Tab.Screen name="Profile" component={Profile} />
     </Tab.Navigator>
   );

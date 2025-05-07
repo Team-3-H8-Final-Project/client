@@ -11,12 +11,14 @@ import {
   Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+<<<<<<< HEAD
 import { Ionicons } from "@expo/vector-icons";
 
+=======
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
 import { saveSecure } from "../helpers/secureStore";
 
 const LevelLanguage = () => {
-  const [selectedLevel, setSelectedLevel] = useState(null);
   const navigation = useNavigation();
 
   const levels = [
@@ -91,12 +93,17 @@ const LevelLanguage = () => {
             <TouchableOpacity
               key={level.id}
               style={[
+<<<<<<< HEAD
                 styles.levelButton,
                 selectedLevel === level.id && styles.selectedLevelButton,
+=======
+                styles.levelButton
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
               ]}
               onPress={() => handleSelectLevel(level.id)}
               activeOpacity={0.8}
             >
+<<<<<<< HEAD
               <View style={styles.levelContent}>
                 <Text
                   style={[
@@ -121,10 +128,16 @@ const LevelLanguage = () => {
                   <Ionicons name="checkmark-circle" size={24} color="#58CC02" />
                 </View>
               )}
+=======
+              <Text>
+                {level}
+              </Text>
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
             </TouchableOpacity>
           ))}
         </View>
 
+<<<<<<< HEAD
         <TouchableOpacity
           style={[
             styles.continueButton,
@@ -135,6 +148,8 @@ const LevelLanguage = () => {
         >
           <Text style={styles.continueButtonText}>LANJUTKAN</Text>
         </TouchableOpacity>
+=======
+>>>>>>> e463b30443048039a72a1a2e7d32cc036d0f9b21
       </View>
     </SafeAreaView>
   );
