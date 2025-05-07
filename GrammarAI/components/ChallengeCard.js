@@ -2,18 +2,25 @@ import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
+// Array of color options
+const COLORS = [
+  "#10b981",
+  "#3b82f6",
+];
+
 const ChallengeCard = ({
   title,
   description,
+  imgUrl,
   backgroundColor,
-  imageSource,
 }) => {
   const navigation = useNavigation();
+  const cardColor = backgroundColor || COLORS[Math.floor(Math.random() * COLORS.length)];
 
   return (
-    <View style={[styles.card, { backgroundColor }]}>
+    <View style={[styles.card, { backgroundColor: cardColor }]}>
       <View style={styles.imageContainer}>
-        <Image source={imageSource} style={styles.image} resizeMode="contain" />
+        <Image source={{ uri: imgUrl }} style={styles.image} resizeMode="contain" />
       </View>
 
       <View style={styles.contentContainer}>
@@ -23,12 +30,9 @@ const ChallengeCard = ({
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.button}
-          onPress={() =>
-            navigation.navigate("ChallengeDetail", { theme: "Travel" })
-          }
-        >
-          <Text style={styles.buttonText}>Take Challenge</Text>
+          style={[styles.button, { color: cardColor }]}
+          onPress={() => navigation.navigate("ChallengeDetail", { theme: title })}>
+          <Text style={[styles.buttonText, { color: cardColor }]}>Take Challenge</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -94,7 +98,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   buttonText: {
-    color: "#10b981",
     fontWeight: "600",
     fontSize: 14,
   },
