@@ -13,6 +13,8 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { saveSecure } from "../helpers/secureStore";
+
 const LevelLanguage = () => {
   const [selectedLevel, setSelectedLevel] = useState(null);
   const navigation = useNavigation();
@@ -36,13 +38,28 @@ const LevelLanguage = () => {
     { id: "Fasih", name: "Fasih", description: "Hampir seperti penutur asli" },
   ];
 
-  const handleSelectLevel = (level) => {
-    setSelectedLevel(level);
-    console.log(`Selected Level: ${level}`);
-
-    setTimeout(() => {
-      navigation.replace("MainApp");
-    }, 500);
+  const handleSelectLevel = async (level) => {
+    // level id based on levels
+    let levelId
+    switch (level) {
+      case "Pemula":
+        levelId = 1;
+        break;
+      case "Menengah":
+        levelId = 2;
+        break;
+      case "Lanjutan":
+        levelId = 3;
+        break;
+      case "Fasih":
+        levelId = 4;
+        break;
+      default:
+        levelId = null;
+    }
+    // set level choosen to secure store
+    navigation.replace("MainApp");
+    await saveSecure("currentLevelId", `${levelId}`);
   };
 
   return (
@@ -93,7 +110,7 @@ const LevelLanguage = () => {
                   style={[
                     styles.levelDescription,
                     selectedLevel === level.id &&
-                      styles.selectedLevelDescription,
+                    styles.selectedLevelDescription,
                   ]}
                 >
                   {level.description}

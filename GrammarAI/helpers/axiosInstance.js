@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "https://0d88-110-138-88-81.ngrok-free.app",
+  baseURL: "https://83ad-103-108-33-110.ngrok-free.app",
   //change to your ngrok link for development after running server locally and run ngrok http 3000
 });
 
