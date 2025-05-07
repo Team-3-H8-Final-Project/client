@@ -110,7 +110,10 @@ export default function Grammar() {
           },
         });
 
-        setGrammarData(response.data.data || []);
+        const allQuestions = response.data.data || [];
+    const shuffledQuestions = [...allQuestions].sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffledQuestions.slice(0, 5);
+    setGrammarData(selectedQuestions);
       } catch (error) {
         console.error("Error fetching grammar data:", error.message);
         console.error("Details:", error.response?.data || error);
