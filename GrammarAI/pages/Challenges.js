@@ -1,35 +1,49 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
 import ChallengeCard from "../components/ChallengeCard";
+import { deleteSecure, getSecure } from "../helpers/secureStore";
+import axiosInstance from "../helpers/axiosInstance";
 
 const Challenges = () => {
+  const [challengeTopics, setChallengeTopics] = useState([]);
+  const fetchChallengeTopics = async () => {
+    const token = await getSecure("access_token");
+    try {
+      const result = await axiosInstance({
+        method: "GET",
+        url: "/challenge-topics",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+      setChallengeTopics(result.data);
+    } catch (error) {
+      alert(`Something went wrong ${error}`);
+    }
+  }
+
+  useEffect(() => {
+    fetchChallengeTopics()
+  }, [])
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Challenges</Text>
+        <Text style={styles.headerTitle}>Tantangan</Text>
       </View>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <ChallengeCard
-          title="Travel Essentials"
-          description="Learn all you need to travel: moving through airports, finding your hotel, and more."
-          backgroundColor="#10b981"
-          imageSource={{
-            uri: "https://static.vecteezy.com/system/resources/previews/019/818/401/non_2x/happy-family-with-children-mother-father-and-kids-cute-cartoon-characters-isolated-colorful-illustration-in-flat-style-free-png.png",
-          }}
-        />
-
-        <ChallengeCard
-          title="Family Conversations"
-          description="Learn how to communicate with family members and discuss daily activities."
-          backgroundColor="#f9a8d4"
-          imageSource={{
-            uri: "https://static.vecteezy.com/system/resources/previews/019/818/401/non_2x/happy-family-with-children-mother-father-and-kids-cute-cartoon-characters-isolated-colorful-illustration-in-flat-style-free-png.png",
-          }}
-        />
+        {challengeTopics.map((item, index) => (
+          <ChallengeCard
+            key={index}
+            title={item.name}
+            description={item.description}
+            imgUrl={item.imgUrl}
+          />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

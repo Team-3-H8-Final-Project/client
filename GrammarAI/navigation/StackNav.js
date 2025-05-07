@@ -19,6 +19,7 @@ export default function StackNav() {
         // await deleteSecure("access_token"); // Clear the access token for testing purposes
         // await deleteSecure("userId"); // Clear the user ID for testing purposes
         // await deleteSecure("onboarded"); // Clear the onboarding status for testing purposes
+        // await deleteSecure("currentLevelId"); // Clear the current level ID for testing purposes
 
         const onboarded = await getSecure("onboarded");
         if (!onboarded) {
@@ -26,7 +27,13 @@ export default function StackNav() {
           return;
         } else {
           const access_token = await getSecure("access_token");
-          setInitialRoute(access_token ?  "LevelLanguage" : "Login");
+          //LevelLanguage
+          const level = await getSecure("currentLevelId");
+          if (level) {
+            setInitialRoute(access_token ? "MainApp" : "Login");
+          } else {
+            setInitialRoute("LevelLanguage");
+          }
         }
 
       } catch (error) {

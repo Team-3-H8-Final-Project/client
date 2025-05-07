@@ -10,14 +10,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import axiosInstance from "../helpers/axiosInstance";
 import { saveSecure } from "../helpers/secureStore";
 
 const Login = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
 
   const handleLogin = async () => {
@@ -30,15 +34,14 @@ const Login = () => {
           password,
         },
       });
-      const accessToken = result.data.access_token
-      const id = result.data.id
+      const accessToken = result.data.access_token;
+      const id = result.data.id;
       alert(`Login Success`);
       navigation.replace("LevelLanguage");
 
       // navigation.replace("MainApp")
-      await saveSecure('access_token', accessToken)
-      await saveSecure('userId', id)
-      
+      await saveSecure("access_token", accessToken);
+      await saveSecure("userId", id);
     } catch (error) {
       if (error.response.data) {
         alert(`${error.response.data.message}`);
@@ -46,10 +49,12 @@ const Login = () => {
         alert(`Something went wrong ${error}`);
       }
     }
-  }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoid}
@@ -68,43 +73,81 @@ const Login = () => {
               />
             </View>
 
-            <Text style={styles.welcomeText}>Welcome Back!</Text>
+            <Text style={styles.welcomeText}>Selamat Datang Kembali!</Text>
+            <Text style={styles.subtitleText}>
+              Masuk untuk melanjutkan belajar
+            </Text>
 
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color="#AFAFAF"
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email or Username"
+                  placeholder="Email atau Username"
                   value={identifier}
                   onChangeText={setIdentifier}
                   autoCapitalize="none"
-                  placeholderTextColor="#8A8A8A"
+                  placeholderTextColor="#AFAFAF"
                 />
               </View>
 
               <View style={styles.inputWrapper}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color="#AFAFAF"
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry
-                  placeholderTextColor="#8A8A8A"
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor="#AFAFAF"
                 />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#AFAFAF"
+                  />
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity
                 onPress={handleLogin}
-                style={styles.signupButton}
+                style={[
+                  styles.loginButton,
+                  (!identifier || !password) && styles.loginButtonDisabled,
+                ]}
+                disabled={isLoading || !identifier || !password}
               >
-                <Text style={styles.signupButtonText}>Sign In</Text>
+                {isLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <View style={styles.loadingDot} />
+                    <View style={styles.loadingDot} />
+                    <View style={styles.loadingDot} />
+                  </View>
+                ) : (
+                  <Text style={styles.loginButtonText}>MASUK</Text>
+                )}
               </TouchableOpacity>
-              <View style={styles.loginRedirectContainer}>
-                <Text style={styles.loginText}>Don't have an account? </Text>
+
+              <View style={styles.registerRedirectContainer}>
+                <Text style={styles.registerText}>Belum punya akun? </Text>
                 <TouchableOpacity
                   onPress={() => navigation.navigate("Register")}
                 >
-                  <Text style={styles.loginLink}>Register</Text>
+                  <Text style={styles.registerLink}>Daftar</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -118,7 +161,7 @@ const Login = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#fff",
   },
   keyboardAvoid: {
     flex: 1,
@@ -136,62 +179,141 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     marginBottom: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   logo: {
-    width: "100%",
-    height: "100%",
+    width: 100,
+    height: 100,
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
+    color: "#3C3C3C",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: "#6F6F6F",
     marginBottom: 30,
+    textAlign: "center",
   },
   inputContainer: {
     width: "100%",
     marginBottom: 20,
   },
   inputWrapper: {
-    backgroundColor: "white",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+    height: 56,
+  },
+  inputIcon: {
+    marginLeft: 16,
+    marginRight: 8,
   },
   input: {
-    height: 50,
-    paddingHorizontal: 16,
+    flex: 1,
+    height: "100%",
     fontSize: 16,
+    color: "#3C3C3C",
   },
-  signupButton: {
-    backgroundColor: "#4285F4",
+  eyeIcon: {
+    padding: 16,
+  },
+  forgotPassword: {
+    alignSelf: "flex-end",
+    marginBottom: 20,
+  },
+  forgotPasswordText: {
+    color: "#1CB0F6",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  loginButton: {
+    backgroundColor: "#58CC02",
     borderRadius: 12,
-    height: 50,
+    height: 56,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
+    shadowColor: "#58CC02",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  signupButtonText: {
+  loginButtonDisabled: {
+    backgroundColor: "#E5E5E5",
+    shadowOpacity: 0,
+  },
+  loginButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
-  loginRedirectContainer: {
+  loadingContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
   },
-  loginText: {
-    fontSize: 14,
-    color: "#666",
+  loadingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "white",
+    marginHorizontal: 4,
+    opacity: 0.8,
   },
-  loginLink: {
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+    width: "100%",
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E5E5E5",
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: "#AFAFAF",
     fontSize: 14,
-    color: "#4285F4",
+  },
+  socialButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  socialButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#F7F7F7",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 8,
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+  },
+  registerRedirectContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  registerText: {
+    fontSize: 14,
+    color: "#6F6F6F",
+  },
+  registerLink: {
+    fontSize: 14,
+    color: "#1CB0F6",
     fontWeight: "600",
   },
 });
