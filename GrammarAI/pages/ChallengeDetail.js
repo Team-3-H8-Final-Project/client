@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import axiosInstance from "../helpers/axiosInstance";
 import { getSecure } from "../helpers/secureStore";
 import { Ionicons } from "@expo/vector-icons";
+import Confetti from "react-native-confetti";
 
 const { width } = Dimensions.get("window");
 const ChallengeDetail = () => {
@@ -29,7 +30,9 @@ const ChallengeDetail = () => {
   const [score, setScore] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [hearts, setHearts] = useState(3);
+  const [gameOver, setGameOver] = useState(false);
   const navigation = useNavigation();
+  const confettiRef = useRef(null);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -132,10 +135,13 @@ const ChallengeDetail = () => {
         setIsCorrect(null);
       } else {
         if (!isAnswerCorrect && hearts <= 1) {
-          // Game over due to no hearts
-          setHearts(0);
+          setGameOver(true);
+        } else {
+          setCompleted(true);
+          if (confettiRef.current) {
+            confettiRef.current.startConfetti();
+          }
         }
-        setCompleted(true);
       }
     }, 1500);
   };
@@ -203,9 +209,63 @@ const ChallengeDetail = () => {
     );
   }
 
+  if (gameOver) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.closeButton}
+          >
+            <Ionicons name="close" size={24} color="#AFAFAF" />
+          </TouchableOpacity>
+
+          <View style={styles.heartsContainer}>
+            <Ionicons
+              name="heart"
+              size={20}
+              color="#AFAFAF"
+              style={styles.heartIcon}
+            />
+            <Text style={styles.heartText}>0</Text>
+          </View>
+        </View>
+
+        <View style={styles.gameOverContainer}>
+          <Image
+            source={require("../assets/logo.png")}
+            style={styles.gameOverImage}
+          />
+          <Text style={styles.gameOverTitle}>Oops! Anda kehabisan nyawa</Text>
+          <Text style={styles.gameOverText}>
+            Coba lagi untuk meningkatkan kemampuan Anda
+          </Text>
+
+          <TouchableOpacity
+            style={styles.tryAgainButton}
+            onPress={() => {
+              setHearts(3);
+              setCurrentQuestionIndex(0);
+              setSelectedOption(null);
+              setIsCorrect(null);
+              setScore(0);
+              setGameOver(false);
+            }}
+          >
+            <Text style={styles.tryAgainButtonText}>COBA LAGI</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (completed) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -227,40 +287,42 @@ const ChallengeDetail = () => {
           </View>
         </View>
 
-        <Animated.View style={styles.completedContainer}>
+        <Confetti ref={confettiRef} />
+
+        <View style={styles.completionContainer}>
           <Image
-            source={{
-              uri: "https://d35aaqx5ub95lt.cloudfront.net/images/stars/398e4fac54a3e78e998a60cbfbf178b3.svg",
-            }}
+            source={require("../assets/logo.png")}
             style={styles.completionImage}
           />
-          <Text style={styles.completedTitle}>
-            {hearts > 0 ? "Great job!" : "Try again!"}
+          <Text style={styles.completionTitle}>Selamat!</Text>
+          <Text style={styles.completionText}>
+            Anda telah menyelesaikan semua tantangan!
           </Text>
-          <Text style={styles.scoreText}>
-            Your score: {score}/{quizData.length}
-          </Text>
+
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{quizData.length}</Text>
+              <Text style={styles.statLabel}>Soal</Text>
+            </View>
+
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{score}</Text>
+              <Text style={styles.statLabel}>Skor Benar</Text>
+            </View>
+
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{hearts}</Text>
+              <Text style={styles.statLabel}>Nyawa</Text>
+            </View>
+          </View>
 
           <TouchableOpacity
             style={styles.continueButton}
-            onPress={() => {
-              if (hearts > 0) {
-                navigation.navigate("ChallengeFeedback");
-              } else {
-                setCurrentQuestionIndex(0);
-                setSelectedOption(null);
-                setIsCorrect(null);
-                setScore(0);
-                setHearts(3);
-                setCompleted(false);
-              }
-            }}
+            onPress={() => navigation.navigate("ChallengeFeedback")}
           >
-            <Text style={styles.continueButtonText}>
-              {hearts > 0 ? "CONTINUE" : "TRY AGAIN"}
-            </Text>
+            <Text style={styles.continueButtonText}>SELESAI</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -313,7 +375,7 @@ const ChallengeDetail = () => {
             },
           ]}
         >
-          <Text style={styles.instructionText}>Choose the correct answer</Text>
+          <Text style={styles.instructionText}>Pilih jawaban yang benar</Text>
           <Text style={styles.questionText}>{currentQuestion.question}</Text>
         </Animated.View>
 
@@ -383,11 +445,11 @@ const ChallengeDetail = () => {
           ]}
         >
           <Text style={styles.feedbackText}>
-            {isCorrect ? "Correct!" : "Incorrect!"}
+            {isCorrect ? "Benar!" : "Salah!"}
           </Text>
           {!isCorrect && (
             <Text style={styles.correctAnswerText}>
-              Correct answer:{" "}
+              Jawaban Benar:{" "}
               {
                 currentQuestion.options.find(
                   (opt) => opt.id === currentQuestion.correctAnswer
@@ -411,13 +473,17 @@ const ChallengeDetail = () => {
               setIsCorrect(null);
             } else {
               if (!isCorrect && hearts <= 1) {
-                setHearts(0);
+                setGameOver(true);
+              } else {
+                setCompleted(true);
+                if (confettiRef.current) {
+                  confettiRef.current.startConfetti();
+                }
               }
-              setCompleted(true);
             }
           }}
         >
-          <Text style={styles.continueButtonText}>CONTINUE</Text>
+          <Text style={styles.continueButtonText}>LANJUT</Text>
         </TouchableOpacity>
       )}
     </SafeAreaView>
@@ -455,6 +521,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heartIcon: {
+    marginLeft: 4,
+  },
+  heartText: {
+    color: "#AFAFAF",
+    fontWeight: "bold",
     marginLeft: 4,
   },
   progressContainer: {
@@ -563,36 +634,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  bottomContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    alignItems: "flex-start",
-  },
-  helpButton: {
-    padding: 4,
-  },
-  completedContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  completionImage: {
-    width: 150,
-    height: 150,
-    marginBottom: 24,
-  },
-  completedTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 16,
-    color: "#3C3C3C",
-  },
-  scoreText: {
-    fontSize: 18,
-    marginBottom: 32,
-    color: "#3C3C3C",
-  },
   loadingContainer: {
     justifyContent: "center",
     alignItems: "center",
@@ -634,6 +675,94 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  // New styles for completion and game over screens
+  gameOverContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  gameOverImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 24,
+    opacity: 0.7,
+  },
+  gameOverTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#FF4B4B",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  gameOverText: {
+    fontSize: 16,
+    color: "#3C3C3C",
+    marginBottom: 32,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  tryAgainButton: {
+    backgroundColor: "#FF4B4B",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#FF4B4B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  tryAgainButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  completionContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  completionImage: {
+    width: 150,
+    height: 150,
+    marginBottom: 24,
+  },
+  completionTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#58CC02",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  completionText: {
+    fontSize: 18,
+    color: "#3C3C3C",
+    marginBottom: 32,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    marginBottom: 32,
+  },
+  statItem: {
+    alignItems: "center",
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1CB0F6",
+  },
+  statLabel: {
+    fontSize: 14,
+    color: "#AFAFAF",
+    marginTop: 4,
   },
 });
 
