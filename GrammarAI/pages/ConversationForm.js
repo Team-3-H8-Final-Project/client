@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -7,15 +7,11 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  Image,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  FadeInDown,
-} from "react-native-reanimated";
-import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 const Dropdown = ({ label, options, value, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +19,10 @@ const Dropdown = ({ label, options, value, onSelect }) => {
   return (
     <View style={styles.dropdownContainer}>
       <TouchableOpacity
-        style={styles.dropdownTrigger}
+        style={[
+          styles.dropdownTrigger,
+          value ? styles.dropdownTriggerSelected : {},
+        ]}
         onPress={() => setIsOpen(!isOpen)}
       >
         <Text
@@ -36,7 +35,7 @@ const Dropdown = ({ label, options, value, onSelect }) => {
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
           size={20}
-          color="#666"
+          color={value ? "#3C3C3C" : "#AFAFAF"}
         />
       </TouchableOpacity>
 
@@ -65,6 +64,9 @@ const Dropdown = ({ label, options, value, onSelect }) => {
               >
                 {option}
               </Text>
+              {value === option && (
+                <Ionicons name="checkmark" size={20} color="#58CC02" />
+              )}
             </TouchableOpacity>
           ))}
         </Animated.View>
@@ -87,10 +89,12 @@ const Checkbox = ({ label, checked, onToggle }) => {
 const RadioButton = ({ label, checked, onSelect }) => {
   return (
     <TouchableOpacity style={styles.radioContainer} onPress={onSelect}>
-      <View style={styles.radioOuter}>
+      <View style={[styles.radioOuter, checked && styles.radioOuterSelected]}>
         {checked && <View style={styles.radioInner} />}
       </View>
-      <Text style={styles.radioLabel}>{label}</Text>
+      <Text style={[styles.radioLabel, checked && styles.radioLabelSelected]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -105,15 +109,7 @@ export default function ConversationForm() {
   });
   const [duration, setDuration] = useState("short");
 
-  const scale = useSharedValue(1);
-
   const navigation = useNavigation();
-
-  const headerAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
 
   const toggleLearningGoal = (goal) => {
     setLearningGoals((prev) => ({
@@ -121,121 +117,120 @@ export default function ConversationForm() {
       [goal]: !prev[goal],
     }));
   };
+
   const handleSubmit = () => {
-    // console.log({
-    //   conversationType,
-    //   learningGoals,
-    //   duration,
-    // });
     navigation.navigate("ConversationScreen");
   };
+
+  const isFormValid =
+    conversationType && Object.values(learningGoals).some(Boolean);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <LinearGradient
-          colors={["#f0f8ff", "#ffffff"]}
-          style={styles.gradientBackground}
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
         >
-          <Animated.View style={[styles.header, headerAnimatedStyle]}>
-            <Text style={styles.title}>Conversation Setup</Text>
-            <View style={styles.iconContainer}>
-              <FontAwesome5 name="comment-dots" size={32} color="#7b68ee" />
-            </View>
-          </Animated.View>
+          <Ionicons name="arrow-back" size={24} color="#AFAFAF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pengaturan Percakapan</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
-          <View style={styles.formContainer}>
-            <Text style={styles.formDescription}>
-              Set up the conversation according to your needs to practice with
-              AI Buddy.
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.formContainer}>
+          <View style={styles.iconHeader}>
+            <Image
+              source={require("../assets/logo.png")}
+              style={styles.owlImage}
+            />
+          </View>
+
+          <Text style={styles.formDescription}>
+            Atur percakapan sesuai kebutuhan Anda untuk berlatih dengan Teman
+            AI.
+          </Text>
+
+          <View style={styles.formSection}>
+            <Text style={styles.sectionLabel}>
+              Jenis percakapan apa yang ingin Anda lakukan?
             </Text>
+            <Dropdown
+              label="Pilih jenis percakapan"
+              options={[
+                "Kehidupan Sehari-hari",
+                "Perjalanan",
+                "Mencari Teman",
+                "Pekerjaan & Karir",
+                "Hobi & Minat",
+              ]}
+              value={conversationType}
+              onSelect={setConversationType}
+            />
+          </View>
 
-            <View style={styles.formSection}>
-              <Text style={styles.sectionLabel}>
-                What type of conversation do you want to have?
-              </Text>
-              <Dropdown
-                label="Select conversation type"
-                options={[
-                  "Daily Life",
-                  "Travel",
-                  "Finding Friends",
-                  "Work & Career",
-                  "Hobbies & Interests",
-                ]}
-                value={conversationType}
-                onSelect={setConversationType}
+          <View style={styles.formSection}>
+            <Text style={styles.sectionLabel}>
+              Apa yang ingin Anda pelajari dalam percakapan ini?
+            </Text>
+            <View style={styles.checkboxGroup}>
+              <Checkbox
+                label="Kosakata"
+                checked={learningGoals.vocabulary}
+                onToggle={() => toggleLearningGoal("vocabulary")}
+              />
+              <Checkbox
+                label="Ekspresi"
+                checked={learningGoals.expressions}
+                onToggle={() => toggleLearningGoal("expressions")}
+              />
+              <Checkbox
+                label="Tata Bahasa"
+                checked={learningGoals.grammar}
+                onToggle={() => toggleLearningGoal("grammar")}
+              />
+              <Checkbox
+                label="Pemahaman Mendengarkan"
+                checked={learningGoals.listening}
+                onToggle={() => toggleLearningGoal("listening")}
               />
             </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.sectionLabel}>
-                What do you want to learn in this conversation?
-              </Text>
-              <View style={styles.checkboxGroup}>
-                <Checkbox
-                  label="Vocabulary"
-                  checked={learningGoals.vocabulary}
-                  onToggle={() => toggleLearningGoal("vocabulary")}
-                />
-                <Checkbox
-                  label="Expressions"
-                  checked={learningGoals.expressions}
-                  onToggle={() => toggleLearningGoal("expressions")}
-                />
-                <Checkbox
-                  label="Grammar"
-                  checked={learningGoals.grammar}
-                  onToggle={() => toggleLearningGoal("grammar")}
-                />
-                <Checkbox
-                  label="Listening Comprehension"
-                  checked={learningGoals.listening}
-                  onToggle={() => toggleLearningGoal("listening")}
-                />
-              </View>
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.sectionLabel}>
-                How long do you want to talk?
-              </Text>
-              <View style={styles.radioGroup}>
-                <RadioButton
-                  label="Short (2-5 Minutes)"
-                  checked={duration === "short"}
-                  onSelect={() => setDuration("short")}
-                />
-                <RadioButton
-                  label="Medium (5-7 Minutes)"
-                  checked={duration === "medium"}
-                  onSelect={() => setDuration("medium")}
-                />
-                <RadioButton
-                  label="Long (10+ Minutes)"
-                  checked={duration === "long"}
-                  onSelect={() => setDuration("long")}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                (!conversationType ||
-                  !Object.values(learningGoals).some(Boolean)) &&
-                  styles.buttonDisabled,
-              ]}
-              onPress={handleSubmit}
-              disabled={
-                !conversationType || !Object.values(learningGoals).some(Boolean)
-              }
-            >
-              <Text style={styles.buttonText}>Start Conversation</Text>
-            </TouchableOpacity>
           </View>
-        </LinearGradient>
+
+          <View style={styles.formSection}>
+            <Text style={styles.sectionLabel}>
+              Berapa lama Anda ingin berbicara?
+            </Text>
+            <View style={styles.radioGroup}>
+              <RadioButton
+                label="Singkat (2-5 Menit)"
+                checked={duration === "short"}
+                onSelect={() => setDuration("short")}
+              />
+              <RadioButton
+                label="Sedang (5-7 Menit)"
+                checked={duration === "medium"}
+                onSelect={() => setDuration("medium")}
+              />
+              <RadioButton
+                label="Panjang (10+ Menit)"
+                checked={duration === "long"}
+                onSelect={() => setDuration("long")}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, !isFormValid && styles.buttonDisabled]}
+            onPress={handleSubmit}
+            disabled={!isFormValid}
+          >
+            <Text style={styles.buttonText}>MULAI PERCAKAPAN</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -246,59 +241,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  gradientBackground: {
-    flex: 1,
-    padding: 20,
-  },
   header: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
-  title: {
-    fontSize: 24,
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: 15,
+    color: "#3C3C3C",
   },
-  iconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#f0f0f0",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  scrollContent: {
+    paddingBottom: 32,
   },
   formContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+  },
+  iconHeader: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  owlImage: {
+    width: 100,
+    height: 100,
   },
   formDescription: {
     fontSize: 16,
-    color: "#555",
-    marginBottom: 20,
+    color: "#6F6F6F",
+    marginBottom: 24,
     lineHeight: 22,
+    textAlign: "center",
   },
   formSection: {
     marginBottom: 24,
   },
   sectionLabel: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "bold",
+    color: "#3C3C3C",
     marginBottom: 12,
   },
   dropdownContainer: {
@@ -309,19 +296,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F7F7F7",
     borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+  },
+  dropdownTriggerSelected: {
+    borderColor: "#58CC02",
+    backgroundColor: "#F7F7F7",
   },
   dropdownPlaceholder: {
-    color: "#999",
+    color: "#AFAFAF",
     fontSize: 16,
   },
   dropdownSelectedText: {
-    color: "#333",
+    color: "#3C3C3C",
     fontSize: 16,
+    fontWeight: "500",
   },
   dropdownOptions: {
     position: "absolute",
@@ -332,8 +324,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 4,
     padding: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -342,18 +334,21 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   dropdownOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
     borderRadius: 8,
   },
   dropdownOptionSelected: {
-    backgroundColor: "#f0f0ff",
+    backgroundColor: "#E7F9E0",
   },
   dropdownOptionText: {
     fontSize: 16,
-    color: "#333",
+    color: "#3C3C3C",
   },
   dropdownOptionTextSelected: {
-    color: "#7b68ee",
+    color: "#58CC02",
     fontWeight: "600",
   },
   checkboxGroup: {
@@ -362,24 +357,26 @@ const styles = StyleSheet.create({
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: "#7b68ee",
+    borderColor: "#E5E5E5",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    backgroundColor: "#F7F7F7",
   },
   checkboxChecked: {
-    backgroundColor: "#7b68ee",
+    backgroundColor: "#58CC02",
+    borderColor: "#58CC02",
   },
   checkboxLabel: {
     fontSize: 16,
-    color: "#333",
+    color: "#3C3C3C",
   },
   radioGroup: {
     marginTop: 8,
@@ -394,40 +391,47 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#7b68ee",
+    borderColor: "#E5E5E5",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    backgroundColor: "#F7F7F7",
+  },
+  radioOuterSelected: {
+    borderColor: "#58CC02",
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#7b68ee",
+    backgroundColor: "#58CC02",
   },
   radioLabel: {
     fontSize: 16,
-    color: "#333",
+    color: "#3C3C3C",
+  },
+  radioLabelSelected: {
+    fontWeight: "500",
   },
   button: {
-    backgroundColor: "#7b68ee",
+    backgroundColor: "#58CC02",
     paddingVertical: 16,
-    borderRadius: 30,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 10,
-    shadowColor: "#7b68ee",
-    shadowOffset: { width: 0, height: 3 },
+    marginTop: 16,
+    shadowColor: "#58CC02",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: "#c0c0c0",
-    shadowOpacity: 0.1,
+    backgroundColor: "#E5E5E5",
+    shadowOpacity: 0,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

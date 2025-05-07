@@ -14,12 +14,13 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSequence,
+  withDelay,
 } from "react-native-reanimated";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import SkillBar from "../components/SkillBar";
 import BulletPoint from "../components/BulletPoint";
-export default function Feedback() {
+export default function ConversationFeedback() {
   const [expanded, setExpanded] = useState({
     strengths: true,
     improvements: true,
@@ -213,7 +214,7 @@ export default function Feedback() {
           <TouchableOpacity
             style={styles.button}
             onPress={() => {
-              navigation.navigate("ChallengeMain");
+              navigation.navigate("ConversationForm");
             }}
           >
             <Text style={styles.buttonText}>Back to Home</Text>

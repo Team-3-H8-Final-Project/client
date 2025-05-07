@@ -24,7 +24,10 @@ const ChallengeCard = ({
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate("ChallengeDetail", { theme: title })}>
+          onPress={() =>
+            navigation.navigate("ChallengeDetail", { theme: "Travel" })
+          }
+        >
           <Text style={styles.buttonText}>Take Challenge</Text>
         </TouchableOpacity>
       </View>

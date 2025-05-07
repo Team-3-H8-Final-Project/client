@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,13 +9,14 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import axiosInstance from "../helpers/axiosInstance";
 import { getSecure } from "../helpers/secureStore";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
-
 const ChallengeDetail = () => {
   const route = useRoute();
   const { theme } = route.params;
@@ -27,6 +28,7 @@ const ChallengeDetail = () => {
   const [isCorrect, setIsCorrect] = useState(null);
   const [score, setScore] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const [hearts, setHearts] = useState(3);
   const navigation = useNavigation();
 
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -38,7 +40,7 @@ const ChallengeDetail = () => {
       try {
         setLoading(true);
         const token = await getSecure("access_token");
-        const desiredLevel = "Pemula"; // ini maksudnya
+        const desiredLevel = "Pemula";
         const response = await axiosInstance.get(`/challenge?theme=${theme}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -46,26 +48,26 @@ const ChallengeDetail = () => {
         });
         const data = response.data.data;
         // filter berdasarkan level
-        const filteredData = data.filter(item => item.level === desiredLevel);
+        const filteredData = data.filter((item) => item.level === desiredLevel);
         // Transform the API data to match our quiz format
         const limitedData = filteredData.slice(0, 5);
         const formattedData = limitedData.map((item, index) => ({
-                    id: item.id,
-                    question: item.question,
-                    options: item.options.map((option, i) => ({
-                      id: String.fromCharCode(97 + i), // a, b, c, d
-                      text: option,
-                    })),
-                    correctAnswer: String.fromCharCode(97 + item.options.indexOf(item.answer)), // find index of correct answer
-                  }));
-        
+          id: item.id,
+          question: item.question,
+          options: item.options.map((option, i) => ({
+            id: String.fromCharCode(97 + i), // a, b, c, d
+            text: option,
+          })),
+          correctAnswer: String.fromCharCode(
+            97 + item.options.indexOf(item.answer)
+          ),
+        }));
+
         setQuizData(formattedData);
         setLoading(false);
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.message || err.message);
         setLoading(false);
-        console.log(err.response); // Lihat response error lengkap
-  setError(err.response?.data?.message || err.message);
       }
     };
 
@@ -75,7 +77,7 @@ const ChallengeDetail = () => {
   useEffect(() => {
     if (quizData.length > 0) {
       const progress = (currentQuestionIndex / quizData.length) * 100;
-      
+
       Animated.timing(progressAnim, {
         toValue: progress,
         duration: 300,
@@ -108,24 +110,34 @@ const ChallengeDetail = () => {
 
   const handleOptionSelect = (optionId) => {
     if (!quizData[currentQuestionIndex]) return;
-    
+
     setSelectedOption(optionId);
-    const isAnswerCorrect = optionId === quizData[currentQuestionIndex].correctAnswer;
+    const isAnswerCorrect =
+      optionId === quizData[currentQuestionIndex].correctAnswer;
     setIsCorrect(isAnswerCorrect);
 
     if (isAnswerCorrect) {
       setScore(score + 1);
+    } else {
+      setHearts(hearts - 1);
     }
 
     setTimeout(() => {
-      if (currentQuestionIndex < quizData.length - 1) {
+      if (
+        currentQuestionIndex < quizData.length - 1 &&
+        (isAnswerCorrect || hearts > 1)
+      ) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         setSelectedOption(null);
         setIsCorrect(null);
       } else {
+        if (!isAnswerCorrect && hearts <= 1) {
+          // Game over due to no hearts
+          setHearts(0);
+        }
         setCompleted(true);
       }
-    }, 1000);
+    }, 1500);
   };
 
   const getOptionStyle = (optionId) => {
@@ -144,7 +156,7 @@ const ChallengeDetail = () => {
       return [styles.option, styles.incorrectOption];
     }
 
-    return styles.option;
+    return [styles.option, styles.disabledOption];
   };
 
   const progressWidth = progressAnim.interpolate({
@@ -155,7 +167,7 @@ const ChallengeDetail = () => {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#4285F4" />
+        <ActivityIndicator size="large" color="#58CC02" />
         <Text style={styles.loadingText}>Loading challenge...</Text>
       </SafeAreaView>
     );
@@ -178,7 +190,9 @@ const ChallengeDetail = () => {
   if (quizData.length === 0 && !loading) {
     return (
       <SafeAreaView style={[styles.container, styles.emptyContainer]}>
-        <Text style={styles.emptyText}>No questions available for this theme.</Text>
+        <Text style={styles.emptyText}>
+          No questions available for this theme.
+        </Text>
         <TouchableOpacity
           style={styles.retryButton}
           onPress={() => navigation.goBack()}
@@ -192,31 +206,59 @@ const ChallengeDetail = () => {
   if (completed) {
     return (
       <SafeAreaView style={styles.container}>
-        <Animated.View
-          style={[
-            styles.completedContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Text style={styles.completedTitle}>Challenge Completed!</Text>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.closeButton}
+          >
+            <Ionicons name="close" size={24} color="#AFAFAF" />
+          </TouchableOpacity>
+
+          <View style={styles.heartsContainer}>
+            {[...Array(hearts)].map((_, i) => (
+              <Ionicons
+                key={i}
+                name="heart"
+                size={20}
+                color="#FF4B4B"
+                style={styles.heartIcon}
+              />
+            ))}
+          </View>
+        </View>
+
+        <Animated.View style={styles.completedContainer}>
+          <Image
+            source={{
+              uri: "https://d35aaqx5ub95lt.cloudfront.net/images/stars/398e4fac54a3e78e998a60cbfbf178b3.svg",
+            }}
+            style={styles.completionImage}
+          />
+          <Text style={styles.completedTitle}>
+            {hearts > 0 ? "Great job!" : "Try again!"}
+          </Text>
           <Text style={styles.scoreText}>
             Your score: {score}/{quizData.length}
           </Text>
+
           <TouchableOpacity
-            style={styles.restartButton}
-            onPress={() => navigation.navigate("Feedback")}
+            style={styles.continueButton}
+            onPress={() => {
+              if (hearts > 0) {
+                navigation.navigate("ChallengeFeedback");
+              } else {
+                setCurrentQuestionIndex(0);
+                setSelectedOption(null);
+                setIsCorrect(null);
+                setScore(0);
+                setHearts(3);
+                setCompleted(false);
+              }
+            }}
           >
-            <Text style={styles.restartButtonText}>See your feedback</Text>
+            <Text style={styles.continueButtonText}>
+              {hearts > 0 ? "CONTINUE" : "TRY AGAIN"}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       </SafeAreaView>
@@ -227,24 +269,34 @@ const ChallengeDetail = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="rgba(0, 0, 0, 0.2)"
-      />
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.closeButton}
+        >
+          <Ionicons name="close" size={24} color="#AFAFAF" />
+        </TouchableOpacity>
+
+        <View style={styles.heartsContainer}>
+          {[...Array(hearts)].map((_, i) => (
+            <Ionicons
+              key={i}
+              name="heart"
+              size={20}
+              color="#FF4B4B"
+              style={styles.heartIcon}
+            />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.progressContainer}>
+        <Animated.View style={[styles.progressBar, { width: progressWidth }]} />
+      </View>
 
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.counterText}>
-            Pertanyaan {currentQuestionIndex + 1} dari {quizData.length}
-          </Text>
-        </View>
-
-        <View style={styles.progressContainer}>
-          <Animated.View
-            style={[styles.progressBar, { width: progressWidth }]}
-          />
-        </View>
-
         <Animated.View
           style={[
             styles.questionContainer,
@@ -261,6 +313,7 @@ const ChallengeDetail = () => {
             },
           ]}
         >
+          <Text style={styles.instructionText}>Choose the correct answer</Text>
           <Text style={styles.questionText}>{currentQuestion.question}</Text>
         </Animated.View>
 
@@ -288,11 +341,85 @@ const ChallengeDetail = () => {
               disabled={selectedOption !== null}
               activeOpacity={0.8}
             >
-              <Text style={styles.optionText}>{option.text}</Text>
+              <Text
+                style={[
+                  styles.optionText,
+                  selectedOption &&
+                    selectedOption !== option.id &&
+                    option.id !== currentQuestion.correctAnswer &&
+                    styles.disabledOptionText,
+                ]}
+              >
+                {option.text}
+              </Text>
+              {selectedOption === option.id &&
+                option.id === currentQuestion.correctAnswer && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={24}
+                    color="#58CC02"
+                    style={styles.optionIcon}
+                  />
+                )}
+              {selectedOption === option.id &&
+                option.id !== currentQuestion.correctAnswer && (
+                  <Ionicons
+                    name="close-circle"
+                    size={24}
+                    color="#FF4B4B"
+                    style={styles.optionIcon}
+                  />
+                )}
             </TouchableOpacity>
           ))}
         </Animated.View>
       </View>
+
+      {isCorrect !== null && (
+        <View
+          style={[
+            styles.feedbackContainer,
+            isCorrect ? styles.correctFeedback : styles.incorrectFeedback,
+          ]}
+        >
+          <Text style={styles.feedbackText}>
+            {isCorrect ? "Correct!" : "Incorrect!"}
+          </Text>
+          {!isCorrect && (
+            <Text style={styles.correctAnswerText}>
+              Correct answer:{" "}
+              {
+                currentQuestion.options.find(
+                  (opt) => opt.id === currentQuestion.correctAnswer
+                )?.text
+              }
+            </Text>
+          )}
+        </View>
+      )}
+
+      {selectedOption !== null && (
+        <TouchableOpacity
+          style={styles.continueButton}
+          onPress={() => {
+            if (
+              currentQuestionIndex < quizData.length - 1 &&
+              (isCorrect || hearts > 1)
+            ) {
+              setCurrentQuestionIndex(currentQuestionIndex + 1);
+              setSelectedOption(null);
+              setIsCorrect(null);
+            } else {
+              if (!isCorrect && hearts <= 1) {
+                setHearts(0);
+              }
+              setCompleted(true);
+            }
+          }}
+        >
+          <Text style={styles.continueButtonText}>CONTINUE</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 };
@@ -300,83 +427,149 @@ const ChallengeDetail = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
-  },
-  content: {
-    flex: 1,
-    maxWidth: 450,
-    width: "100%",
-    alignSelf: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 24,
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  counterText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
+  closeButton: {
+    padding: 4,
   },
-  scoreText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
+  streakContainer: {
+    backgroundColor: "#FFF9E5",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  streakText: {
+    color: "#FFB020",
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+  heartsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  heartIcon: {
+    marginLeft: 4,
   },
   progressContainer: {
     height: 8,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 9999,
-    marginBottom: 24,
-    overflow: "hidden",
+    backgroundColor: "#E5E5E5",
+    width: "100%",
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#4285F4",
-    borderRadius: 9999,
+    backgroundColor: "#58CC02",
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 24,
   },
   questionContainer: {
     marginBottom: 24,
-    alignItems: "center",
+  },
+  instructionText: {
+    fontSize: 14,
+    color: "#AFAFAF",
+    marginBottom: 8,
+    fontWeight: "500",
   },
   questionText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
-    textAlign: "center",
-    color: "#333",
-    lineHeight: 26,
+    color: "#3C3C3C",
+    lineHeight: 28,
   },
   optionsContainer: {
     width: "100%",
   },
   option: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "#fff",
     padding: 16,
-    borderRadius: 50,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   correctOption: {
-    backgroundColor: "rgba(220, 252, 231, 0.9)",
-    borderColor: "#22c55e",
-    borderWidth: 1,
+    backgroundColor: "#E7F9E0",
+    borderColor: "#58CC02",
   },
   incorrectOption: {
-    backgroundColor: "rgba(254, 226, 226, 0.9)",
-    borderColor: "#ef4444",
-    borderWidth: 1,
+    backgroundColor: "#FFEBEB",
+    borderColor: "#FF4B4B",
+  },
+  disabledOption: {
+    opacity: 0.6,
   },
   optionText: {
     fontSize: 16,
-    color: "#333",
-    textAlign: "center",
+    color: "#3C3C3C",
+    flex: 1,
+  },
+  disabledOptionText: {
+    color: "#AFAFAF",
+  },
+  optionIcon: {
+    marginLeft: 8,
+  },
+  feedbackContainer: {
+    padding: 16,
+    alignItems: "center",
+    marginHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  correctFeedback: {
+    backgroundColor: "#E7F9E0",
+  },
+  incorrectFeedback: {
+    backgroundColor: "#FFEBEB",
+  },
+  feedbackText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  correctAnswerText: {
+    fontSize: 14,
+    color: "#3C3C3C",
+  },
+  continueButton: {
+    backgroundColor: "#58CC02",
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: "#58CC02",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    paddingHorizontal: 24,
+  },
+  continueButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  bottomContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    alignItems: "flex-start",
+  },
+  helpButton: {
+    padding: 4,
   },
   completedContainer: {
     flex: 1,
@@ -384,32 +577,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24,
   },
+  completionImage: {
+    width: 150,
+    height: 150,
+    marginBottom: 24,
+  },
   completedTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     marginBottom: 16,
-    color: "#333",
+    color: "#3C3C3C",
   },
   scoreText: {
     fontSize: 18,
-    marginBottom: 24,
-    color: "#333",
-  },
-  restartButton: {
-    backgroundColor: "#4285F4",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  restartButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+    marginBottom: 32,
+    color: "#3C3C3C",
   },
   loadingContainer: {
     justifyContent: "center",
@@ -418,7 +600,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#333",
+    color: "#3C3C3C",
   },
   errorContainer: {
     justifyContent: "center",
@@ -427,7 +609,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: "#ef4444",
+    color: "#FF4B4B",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -438,15 +620,15 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#333",
+    color: "#3C3C3C",
     marginBottom: 16,
     textAlign: "center",
   },
   retryButton: {
-    backgroundColor: "#4285F4",
+    backgroundColor: "#58CC02",
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   retryButtonText: {
     color: "white",

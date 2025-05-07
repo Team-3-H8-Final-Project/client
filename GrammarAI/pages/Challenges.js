@@ -6,7 +6,7 @@ const Challenges = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Challenges</Text>
+        <Text style={styles.headerTitle}>Tantangan</Text>
       </View>
 
       <ScrollView
