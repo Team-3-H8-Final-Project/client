@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  Alert,
   ActivityIndicator,
   Animated,
 } from "react-native";
@@ -31,9 +32,12 @@ export default function Grammar() {
   const [recording, setRecording] = useState(null);
   const [recordedUri, setRecordedUri] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [userAnswers, setUserAnswers] = useState([]);
   const [hearts, setHearts] = useState(40);
   const [completed, setCompleted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [score, setScore] = useState(0);
+  const [feedbackPayload, setFeedbackPayload] = useState({ answers: [] });
   const confettiRef = useRef(null);
 
   // Animation refs
@@ -194,9 +198,9 @@ export default function Grammar() {
       const base64Audio = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
+  
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyA3bzCCK6ckqAkzKknoC2hDJJICM9GiZnY`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -220,28 +224,41 @@ export default function Grammar() {
           }),
         }
       );
-
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
       const data = await response.json();
       const transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      
+      if (!transcript) {
+        throw new Error("Tidak mendapatkan transkrip dari Gemini");
+      }
+  
       setResult(transcript);
       const correct = transcript
         .toLowerCase()
         .includes(targetSentence.toLowerCase());
       setIsCorrect(correct);
       setShowResult(true);
-
+  
       if (!correct) {
         const newHearts = Math.max(0, hearts - 1);
         setHearts(newHearts);
       }
     } catch (err) {
       console.error("Gagal memproses audio dengan Gemini:", err);
-      // Fallback for testing
+      Alert.alert(
+        "Error",
+        "Gagal memproses audio. Silakan coba lagi."
+      );
+      // Fallback untuk testing
       const randomCorrect = Math.random() > 0.3;
-      setResult(randomCorrect ? targetSentence : "How is you today?");
+      setResult(randomCorrect ? targetSentence : "Incorrect answer");
       setIsCorrect(randomCorrect);
       setShowResult(true);
-
+  
       if (!randomCorrect) {
         const newHearts = Math.max(0, hearts - 1);
         setHearts(newHearts);
@@ -251,7 +268,49 @@ export default function Grammar() {
     }
   };
 
-  const handleContinue = () => {
+  const submitFeedback = async (answers) => {
+    try {
+      const token = await getSecure("access_token");
+      if (!token) throw new Error("Token not found");
+  
+      const response = await axiosInstance.post(
+        "/feedback/grammar",
+        { answers },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+  
+      if (response?.data?.id) {
+        return response.data;
+      } else {
+        throw new Error("Invalid feedback response");
+      }
+    } catch (error) {
+      console.error("Gagal mengirim feedback:", error.message);
+      Alert.alert(
+        "Error",
+        "Gagal mengirim feedback. Silakan coba lagi nanti."
+      );
+      throw error;
+    }
+  };
+
+  const handleContinue = async () => {
+    const answerData = {
+      questionId: currentQuestion.id || "unknown",
+      question: currentQuestion.question || "unknown",
+      correctAnswer: currentQuestion.answer || "unknown",
+      userAnswer: result || "unknown",
+    };
+    const updatedAnswers = [...userAnswers, answerData];
+    setUserAnswers(updatedAnswers);
+    const correctCount = updatedAnswers.filter(answer =>
+      answer.userAnswer.toLowerCase().includes(answer.correctAnswer.toLowerCase())
+    ).length;
+    setScore(correctCount);
     if (hearts <= 0) {
       setGameOver(true);
       return;
@@ -267,7 +326,23 @@ export default function Grammar() {
       if (confettiRef.current) {
         confettiRef.current.startConfetti();
       }
+      try {
+        const feedbackData = await submitFeedback(updatedAnswers);
+        
+        navigation.navigate("GrammarFeedback", {
+          score: Math.round((score / grammarData.length) * 100),
+          feedbackId: feedbackData.id,
+        });
+      } catch (error) {
+        // Error is already handled in submitFeedback
+        navigation.navigate("GrammarFeedback", {
+          score: Math.round((correctCount / grammarData.length) * 100),
+          feedbackId: null,
+        });
+      }
     }
+    setShowResult(false);
+    setResult("");
   };
 
   useEffect(() => {
@@ -398,11 +473,19 @@ export default function Grammar() {
           </View>
 
           <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => navigation.navigate("GrammarFeedback")}
-          >
-            <Text style={styles.continueButtonText}>SELESAI</Text>
-          </TouchableOpacity>
+        style={styles.continueButton}
+        onPress={() => {
+          const correctCount = userAnswers.filter(answer =>
+            answer.userAnswer.toLowerCase().includes(answer.correctAnswer.toLowerCase())
+          ).length;
+          navigation.navigate("GrammarFeedback", {
+            score: Math.round((correctCount / grammarData.length) * 100),
+            feedbackId: feedbackPayload.id || null,
+          });
+        }}
+      >
+        <Text style={styles.continueButtonText}>SELESAI</Text>
+      </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
