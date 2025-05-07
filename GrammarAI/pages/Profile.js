@@ -135,7 +135,8 @@ const Profile = () => {
 
         <View style={styles.activityContainer}>
           <Text style={styles.sectionTitle}>Riwayat</Text>
-          {history &&
+
+          {history && history.length > 0 ? (
             history.map((item) => (
               <ActivityItem
                 key={item.id}
@@ -144,7 +145,10 @@ const Profile = () => {
                 score={item.totalScore}
                 type={item.testType}
               />
-            ))}
+            ))
+          ) : (
+            <Text style={styles.noHistoryText}>Tidak ada riwayat</Text>
+          )}
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -378,7 +382,12 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 16,
   },
-
+  noHistoryText: {
+    fontSize: 16,
+    color: "#6F6F6F",
+    textAlign: "center",
+    marginTop: 16,
+  },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
