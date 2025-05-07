@@ -35,9 +35,32 @@ const ChallengeDetail = () => {
   const navigation = useNavigation();
   const confettiRef = useRef(null);
 
+  const [feedbackPayload, setFeedbackPayload] = useState({ answers: [] });
+
   const progressAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const handleFeedback = async () => {
+    try {
+      const result = await axiosInstance({
+        method: "POST",
+        url: "/feedback/challenge",
+        headers: {
+          "Authorization": `Bearer ${await getSecure("access_token")}`,
+        },
+        data: {
+          answers: feedbackPayload.answers,
+        }
+      });
+      setLoading(true)
+      navigation.navigate("ChallengeFeedback", {
+        feedbackId: result.data.id,
+      })
+    } catch (error) {
+      alert(`Something went wrong ${error}`)
+    }
+  }
 
   const fetchQuizData = async () => {
     try {
@@ -121,7 +144,7 @@ const ChallengeDetail = () => {
     }
   }, [currentQuestionIndex, quizData]);
 
-  const handleOptionSelect = (optionId) => {
+  const handleOptionSelect = (optionId, optionText) => {
     if (!quizData[currentQuestionIndex]) return;
 
     setSelectedOption(optionId);
@@ -154,6 +177,25 @@ const ChallengeDetail = () => {
         }
       }
     }, 1500);
+
+    const userTranslation = optionText;
+    const correctTranslation = quizData[currentQuestionIndex].options.find(
+      (option) => option.id === quizData[currentQuestionIndex].correctAnswer
+    ).text;
+    const indonesianSentence = quizData[currentQuestionIndex].question;
+
+    // push to feedbackPayload
+    setFeedbackPayload((prev) => ({
+      ...prev,
+      answers: [
+        ...prev.answers,
+        {
+          indonesianSentence,
+          correctTranslation,
+          userTranslation,
+        },
+      ],
+    }));
   };
 
   const getOptionStyle = (optionId) => {
@@ -328,8 +370,13 @@ const ChallengeDetail = () => {
 
           <TouchableOpacity
             style={styles.continueButton}
-            onPress={() => navigation.navigate("ChallengeFeedback")}
+            onPress={
+              async () => {
+                await handleFeedback()
+              }
+            }
           >
+
             <Text style={styles.continueButtonText}>SELESAI</Text>
           </TouchableOpacity>
         </View>
@@ -410,7 +457,7 @@ const ChallengeDetail = () => {
               <TouchableOpacity
                 key={option.id}
                 style={getOptionStyle(option.id)}
-                onPress={() => handleOptionSelect(option.id)}
+                onPress={() => handleOptionSelect(option.id, option.text)}
                 disabled={selectedOption !== null}
                 activeOpacity={0.8}
               >
