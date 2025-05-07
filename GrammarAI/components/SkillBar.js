@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-
 import { View, Text, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
@@ -7,8 +6,19 @@ import Animated, {
   withTiming,
   withDelay,
 } from "react-native-reanimated";
-const SkillBar = ({ label, score, maxScore, color, delay = 0 }) => {
+
+const colors = [
+  "#4ecdc4", // Fluency
+  "#ff9f1c", // Pronunciation
+  "#7b68ee", // Grammar in Speech
+  "#ff6b6b"  // Relevance of Responses
+];
+
+const SkillBar = ({ label, score, maxScore, delay = 0 }) => {
   const width = useSharedValue(0);
+
+  // Randomly select a color from the colors array
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
   useEffect(() => {
     width.value = withDelay(
@@ -33,12 +43,13 @@ const SkillBar = ({ label, score, maxScore, color, delay = 0 }) => {
       </View>
       <View style={styles.barBackground}>
         <Animated.View
-          style={[styles.barFill, { backgroundColor: color }, animatedStyle]}
+          style={[styles.barFill, { backgroundColor: randomColor }, animatedStyle]}
         />
       </View>
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   skillContainer: {
     marginTop: 15,
@@ -68,4 +79,5 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
 });
+
 export default SkillBar;

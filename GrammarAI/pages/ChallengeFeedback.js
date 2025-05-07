@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -17,9 +17,13 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import SkillBar from "../components/SkillBar";
 import BulletPoint from "../components/BulletPoint";
+
+import { getSecure } from "../helpers/secureStore";
+import axiosInstance from "../helpers/axiosInstance";
+
 export default function ChallengeFeedback() {
   const [expanded, setExpanded] = useState({
     strengths: true,
@@ -27,6 +31,8 @@ export default function ChallengeFeedback() {
     verdict: true,
   });
   const navigation = useNavigation();
+  const route = useRoute();
+  const { feedbackId } = route.params;
 
   const toggleSection = (section) => {
     setExpanded((prev) => ({
@@ -50,6 +56,34 @@ export default function ChallengeFeedback() {
     };
   });
 
+  const [feedbackData, setFeedbackData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const fetchFeedback = async () => {
+    try {
+      setLoading(true);
+      const token = await getSecure("access_token");
+      if (!token) {
+        throw new Error("Token not found");
+      }
+
+      const response = await axiosInstance.get(`/feedback/${feedbackId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setFeedbackData(response.data);
+    } catch (error) {
+      console.error("Error fetching profile data:", error.message);
+      console.error("Error details:", error.response?.data || error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFeedback();
+  }, [])
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -65,7 +99,9 @@ export default function ChallengeFeedback() {
               onPress={pulseAnimation}
             >
               <View style={styles.scoreCircle}>
-                <Text style={styles.scoreText}>54</Text>
+                <Text style={styles.scoreText}>{
+                  feedbackData.totalScore.toFixed(2)
+                }</Text>
                 <Text style={styles.scoreMax}>/100</Text>
               </View>
             </TouchableOpacity>
@@ -74,41 +110,23 @@ export default function ChallengeFeedback() {
 
               <View style={styles.dateContainer}>
                 <Ionicons name="calendar-outline" size={16} color="#666" />
-                <Text style={styles.dateText}>Apr 08, 2025</Text>
+                <Text style={styles.dateText}>{feedbackData.createdAt}</Text>
               </View>
             </View>
           </Animated.View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Evaluation Breakdown</Text>
-            <SkillBar
-              label="Fluency"
-              score={60}
-              maxScore={100}
-              color="#4ecdc4"
-              delay={0}
-            />
-            <SkillBar
-              label="Pronunciation"
-              score={50}
-              maxScore={100}
-              color="#ff9f1c"
-              delay={100}
-            />
-            <SkillBar
-              label="Grammar in Speech"
-              score={70}
-              maxScore={100}
-              color="#7b68ee"
-              delay={200}
-            />
-            <SkillBar
-              label="Relevance of Responses"
-              score={50}
-              maxScore={100}
-              color="#ff6b6b"
-              delay={300}
-            />
+            {Object.entries(feedbackData.categoryScores).map(([key, value]) => (
+              <SkillBar
+                key={key}
+                label={key}
+                score={value}
+                maxScore={100}
+                delay={0}
+              />
+            ))}
+
           </View>
 
           <View style={styles.section}>
@@ -129,18 +147,15 @@ export default function ChallengeFeedback() {
 
             {expanded.strengths && (
               <View style={styles.bulletList}>
-                <BulletPoint
-                  text="Used correct past tense in most responses."
-                  delay={100}
-                />
-                <BulletPoint
-                  text="Chose appropriate vocabulary for a casual conversation."
-                  delay={200}
-                />
-                <BulletPoint
-                  text="Pronunciation was clear and understandable."
-                  delay={200}
-                />
+                {
+                  feedbackData.strengths.map((strength, index) => (
+                    <BulletPoint
+                      key={index}
+                      text={strength}
+                      delay={index * 100}
+                    />
+                  ))
+                }
               </View>
             )}
           </View>
@@ -163,22 +178,15 @@ export default function ChallengeFeedback() {
 
             {expanded.improvements && (
               <View style={styles.bulletList}>
-                <BulletPoint
-                  text="Incorrect subject-verb agreement in 3 sentences."
-                  delay={100}
-                />
-                <BulletPoint
-                  text="Used “is” instead of “are” in plural context."
-                  delay={200}
-                />
-                <BulletPoint
-                  text="Could improve vocabulary for expressing opinions (e.g., “I think…” / “In my opinion…”)."
-                  delay={300}
-                />
-                <BulletPoint
-                  text="Misused modal verbs like “should” and “could”."
-                  delay={400}
-                />
+                {
+                  feedbackData.areasForImprovement.map((improvement, index) => (
+                    <BulletPoint
+                      key={index}
+                      text={improvement}
+                      delay={index * 100}
+                    />
+                  ))
+                }
               </View>
             )}
           </View>
@@ -202,10 +210,7 @@ export default function ChallengeFeedback() {
             {expanded.verdict && (
               <Animated.View style={styles.verdictContainer}>
                 <Text style={styles.verdictText}>
-                  Summarize overall performance, tone can be friendly and
-                  encouraging: "Great effort! You're progressing well in using
-                  proper sentence structure. Focus on past tense verbs and
-                  plural forms in your next session."
+                  {feedbackData.finalAssessment}
                 </Text>
               </Animated.View>
             )}
