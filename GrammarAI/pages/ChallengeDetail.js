@@ -29,10 +29,35 @@ const ChallengeDetail = () => {
   const [score, setScore] = useState(0);
   const [completed, setCompleted] = useState(false);
   const navigation = useNavigation();
+  const [feedbackPayload, setFeedbackPayload] = useState({ answers: [] });
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const handleFeedback = async () => {
+    try {
+      const result = await axiosInstance({
+        method: "POST",
+        url: "/feedback/challenge",
+        headers: {
+          "Authorization": `Bearer ${await getSecure("access_token")}`,
+        },
+        data: {
+          answers: feedbackPayload.answers,
+        }
+      });
+      // alert(JSON.stringify(result.data))
+      // navigate to feedback screen
+      // alert(result.data.id)
+      setLoading(true)
+      navigation.navigate("Feedback", {
+        feedbackId: result.data.id,
+      })
+    } catch (error) {
+      alert(`Something went wrong ${error}`)
+    }
+  }
 
 
   // convert to desirable format (e.g Food and Drinks -> food-and-drinks)
@@ -77,7 +102,6 @@ const ChallengeDetail = () => {
       } catch (err) {
         setError(err.message);
         setLoading(false);
-        console.log(err.response); // Lihat response error lengkap
         setError(err.response?.data?.message || err.message);
       }
     };
@@ -119,7 +143,7 @@ const ChallengeDetail = () => {
     }
   }, [currentQuestionIndex, quizData]);
 
-  const handleOptionSelect = (optionId) => {
+  const handleOptionSelect = (optionId, optionText) => {
     if (!quizData[currentQuestionIndex]) return;
 
     setSelectedOption(optionId);
@@ -139,7 +163,39 @@ const ChallengeDetail = () => {
         setCompleted(true);
       }
     }, 1000);
+
+    // push to feedbackPayload
+    /*
+    { e.g.
+    "answers": [
+        {
+        "indonesianSentence":"Dengan sedikit imajinasi, bahan-bahan sederhana pun bisa diubah menjadi hidangan adiboga.",
+        "correctTranslation" : "With a touch of imagination, even humble ingredients can be transformed into haute cuisine.",
+        "userTranslation" : "With a touch of imagination, even simple ingredients can be turned into tasty food."
+        }
+    ]
+}
+     */
+    const userTranslation = optionText;
+    const correctTranslation = quizData[currentQuestionIndex].options.find(
+      (option) => option.id === quizData[currentQuestionIndex].correctAnswer
+    ).text;
+    const indonesianSentence = quizData[currentQuestionIndex].question;
+
+    // push to feedbackPayload
+    setFeedbackPayload((prev) => ({
+      ...prev,
+      answers: [
+        ...prev.answers,
+        {
+          indonesianSentence,
+          correctTranslation,
+          userTranslation,
+        },
+      ],
+    }));
   };
+
 
   const getOptionStyle = (optionId) => {
     if (selectedOption === null) {
@@ -169,7 +225,7 @@ const ChallengeDetail = () => {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#4285F4" />
-        <Text style={styles.loadingText}>Loading challenge...</Text>
+        <Text style={styles.loadingText}>Loading...</Text>
       </SafeAreaView>
     );
   }
@@ -227,7 +283,14 @@ const ChallengeDetail = () => {
           </Text>
           <TouchableOpacity
             style={styles.restartButton}
-            onPress={() => navigation.navigate("Feedback")}
+            onPress={
+              // () => navigation.navigate("Feedback")
+              async () => {
+                // alert(quizData)
+                // console.log(quizData)
+                await handleFeedback()
+              }
+            }
           >
             <Text style={styles.restartButtonText}>See your feedback</Text>
           </TouchableOpacity>
@@ -298,7 +361,7 @@ const ChallengeDetail = () => {
               <TouchableOpacity
                 key={option.id}
                 style={getOptionStyle(option.id)}
-                onPress={() => handleOptionSelect(option.id)}
+                onPress={() => handleOptionSelect(option.id, option.text)}
                 disabled={selectedOption !== null}
                 activeOpacity={0.8}
               >

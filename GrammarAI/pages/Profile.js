@@ -115,9 +115,12 @@ const Profile = () => {
 };
 
 const styles = StyleSheet.create({
+  // center the content in container
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollContainer: {
     padding: 20,
