@@ -111,6 +111,7 @@ export default function Grammar() {
         });
 
     const allQuestions = response.data.data || [];
+
     const shuffledQuestions = [...allQuestions].sort(() => 0.5 - Math.random());
     const selectedQuestions = shuffledQuestions.slice(0, 5);
     setGrammarData(selectedQuestions);
