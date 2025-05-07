@@ -9,11 +9,11 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  ScrollView
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import axiosInstance from "../helpers/axiosInstance";
 import { getSecure } from "../helpers/secureStore";
-import { ScrollView } from "react-native-web";
 
 const { width } = Dimensions.get("window");
 
@@ -244,68 +244,71 @@ const ChallengeDetail = () => {
         barStyle="light-content"
         backgroundColor="rgba(0, 0, 0, 0.2)"
       />
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.counterText}>
-            Pertanyaan {currentQuestionIndex + 1} dari {quizData.length}
-          </Text>
-        </View>
+      <ScrollView>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.counterText}>
+              Pertanyaan {currentQuestionIndex + 1} dari {quizData.length}
+            </Text>
+          </View>
 
-        {/*TODO wrap below with scrollview */}
-        <View style={styles.progressContainer}>
+          {/*TODO wrap below with scrollview */}
+          <View style={styles.progressContainer}>
+            <Animated.View
+              style={[styles.progressBar, { width: progressWidth }]}
+            />
+          </View>
+
           <Animated.View
-            style={[styles.progressBar, { width: progressWidth }]}
-          />
+            style={[
+              styles.questionContainer,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  {
+                    translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -10],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Text style={styles.questionText}>{currentQuestion.question}</Text>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.optionsContainer,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  {
+                    translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -10],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            {currentQuestion.options.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={getOptionStyle(option.id)}
+                onPress={() => handleOptionSelect(option.id)}
+                disabled={selectedOption !== null}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.optionText}>{option.text}</Text>
+              </TouchableOpacity>
+            ))}
+          </Animated.View>
         </View>
+      </ScrollView>
 
-        <Animated.View
-          style={[
-            styles.questionContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -10],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Text style={styles.questionText}>{currentQuestion.question}</Text>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.optionsContainer,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -10],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          {currentQuestion.options.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={getOptionStyle(option.id)}
-              onPress={() => handleOptionSelect(option.id)}
-              disabled={selectedOption !== null}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.optionText}>{option.text}</Text>
-            </TouchableOpacity>
-          ))}
-        </Animated.View>
-      </View>
     </SafeAreaView>
   );
 };
